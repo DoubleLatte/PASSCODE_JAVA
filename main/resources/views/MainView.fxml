@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+<?import org.kordamp.ikonli.javafx.*?>
+
+<VBox xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.ddlatte.encryption.ModernEncryptionController"
+      styleClass="modern-container" spacing="0">
+
+    <MenuBar styleClass="modern-menu">
+        <Menu text="파일">
+            <MenuItem text="폴더 열기" onAction="#onOpenFolder">
+                <graphic>
+                    <FontIcon iconLiteral="fas-folder-open" />
+                </graphic>
+            </MenuItem>
+            <SeparatorMenuItem />
+            <MenuItem text="종료" onAction="#onExit">
+                <graphic>
+                    <FontIcon iconLiteral="fas-sign-out-alt" />
+                </graphic>
+            </MenuItem>
+        </Menu>
+        <Menu text="키">
+            <MenuItem text="새 키 생성" onAction="#onCreateKey">
+                <graphic>
+                    <FontIcon iconLiteral="fas-key" />
+                </graphic>
+            </MenuItem>
+            <MenuItem text="키 로드" onAction="#onLoadKey">
+                <graphic>
+                    <FontIcon iconLiteral="fas-upload" />
+                </graphic>
+            </MenuItem>
+        </Menu>
+        <Menu text="도움말">
+            <MenuItem text="정보" onAction="#showInfo">
+                <graphic>
+                    <FontIcon iconLiteral="fas-info-circle" />
+                </graphic>
+            </MenuItem>
+            <MenuItem text="라이브러리" onAction="#showlibrary">
+                <graphic>
+                    <FontIcon iconLiteral="fas-code" />
+                </graphic>
+            </MenuItem>
+        </Menu>
+    </MenuBar>
+
+    <VBox spacing="0.1" styleClass="content-container">
+        <padding>
+            <Insets top="0.1" right="0.1" bottom="0.1" left="0.1"/>
+        </padding>
+
+        <HBox spacing="10" alignment="CENTER_LEFT" styleClass="toolbar">
+            <Button onAction="#onOpenFolder" styleClass="tool-button">
+                <graphic>
+                    <FontIcon iconLiteral="fas-folder-open" />
+                </graphic>
+                <tooltip>
+                    <Tooltip text="폴더 열기" />
+                </tooltip>
+            </Button>
+
+            <!-- 동기화 버튼 추가 -->
+            <Button onAction="#refreshFileList" styleClass="tool-button">
+                <graphic>
+                    <FontIcon iconLiteral="fas-sync" />
+                </graphic>
+                <tooltip>
+                    <Tooltip text="파일 목록 갱신" />
+                </tooltip>
+            </Button>
+
+            <Pane prefWidth="5" styleClass="vertical-divider" />
+
+            <Button onAction="#onCreateKey" styleClass="tool-button">
+                <graphic>
+                    <HBox spacing="2">
+                        <FontIcon iconLiteral="fas-plus" />
+                        <FontIcon iconLiteral="fas-key" />
+                    </HBox>
+                </graphic>
+                <tooltip>
+                    <Tooltip text="새 키 생성" />
+                </tooltip>
+            </Button>
+
+            <Button onAction="#onLoadKey" styleClass="tool-button">
+                <graphic>
+                    <HBox spacing="2">
+                        <FontIcon iconLiteral="fas-upload" />
+                        <FontIcon iconLiteral="fas-key" />
+                    </HBox>
+                </graphic>
+                <tooltip>
+                    <Tooltip text="키 로드" />
+                </tooltip>
+            </Button>
+
+            <Pane prefWidth="5" styleClass="vertical-divider" />
+
+            <Label text="청크 크기:" />
+            <ComboBox fx:id="chunkSizeCombo" />
+
+            <Region HBox.hgrow="ALWAYS" />
+
+            <Button fx:id="encryptButton" onAction="#onEncrypt" styleClass="action-button, encrypt-button">
+                <graphic>
+                    <HBox spacing="5" alignment="CENTER">
+                        <FontIcon iconLiteral="fas-lock" />
+                        <Label text="암호화" styleClass="button-label" />
+                    </HBox>
+                </graphic>
+            </Button>
+
+            <Button fx:id="decryptButton" onAction="#onDecrypt" styleClass="action-button, decrypt-button">
+                <graphic>
+                    <HBox spacing="5" alignment="CENTER">
+                        <FontIcon iconLiteral="fas-unlock" />
+                        <Label text="복호화" styleClass="button-label" />
+                    </HBox>
+                </graphic>
+            </Button>
+        </HBox>
+
+        <VBox styleClass="status-container" spacing="5">
+            <Label fx:id="statusLabel" text="키 상태: 키가 로드되지 않음">
+                <graphic>
+                    <FontIcon iconLiteral="fas-key" />
+                </graphic>
+            </Label>
+        </VBox>
+
+        <TableView fx:id="fileTable" VBox.vgrow="ALWAYS" styleClass="file-table">
+            <placeholder>
+                <Label text="현재 디렉토리에 파일이 없습니다" />
+            </placeholder>
+        </TableView>
+    </VBox>
+
+    <HBox styleClass="status-bar" alignment="CENTER_LEFT" spacing="10">
+        <padding>
+            <Insets top="5" right="10" bottom="5" left="10"/>
+        </padding>
+        <Label fx:id="itemCountLabel" text="준비 - 0 항목" />
+        <Region HBox.hgrow="ALWAYS" />
+        <Label fx:id="memoryLabel" text="메모리: 초기화 중..." />
+    </HBox>
+
+</VBox>
