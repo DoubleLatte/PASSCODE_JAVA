@@ -121,6 +121,15 @@
     -fx-text-fill: -fx-text-fill;
 }
 
+/* 취소 버튼 */
+.cancel-button:hover {
+    -fx-background-color: #fca5a5;
+}
+
+.cancel-button .ikonli-font-icon {
+    -fx-icon-color: #b91c1c;
+}
+
 /* 액션 버튼 */
 .action-button {
     -fx-padding: 10 16;
