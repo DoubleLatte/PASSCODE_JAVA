@@ -6,7 +6,7 @@
     -fx-background-color: #f9fafb;
     -fx-text-fill: #374151;
     -fx-border-color: #d1d5db;
-    -fx-border-radius: 4;
+    -fx-border-radius: 6;
     -fx-hover-bg: #d1d5db;
     -fx-accent-blue: #3b82f6;
     -fx-accent-blue-hover: #2563eb;
@@ -59,9 +59,14 @@
 /* 툴바 */
 .toolbar {
     -fx-background-color: -fx-secondary-bg;
-    -fx-padding: 8;
+    -fx-padding: 10;
     -fx-border-width: 0 0 1 0;
     -fx-border-color: -fx-border-color;
+}
+
+.toolbar-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: -fx-text-fill;
 }
 
 /* 버튼 공통 스타일 */
@@ -69,10 +74,9 @@
     -fx-background-color: transparent;
     -fx-cursor: hand;
     -fx-background-radius: -fx-border-radius;
-}
-
-.tool-button {
-    -fx-padding: 6 10;
+    -fx-padding: 8 12;
+    -fx-font-size: 12px;
+    -fx-transition: -fx-background-color 0.2s ease-in-out;
 }
 
 .tool-button:hover {
@@ -84,18 +88,42 @@
     -fx-icon-color: -fx-text-fill;
 }
 
+.tool-button .button-label {
+    -fx-text-fill: -fx-text-fill;
+    -fx-font-size: 12px;
+}
+
+/* 주요 버튼 */
+.primary-button {
+    -fx-background-color: derive(-fx-accent-blue, -10%);
+    -fx-text-fill: white;
+}
+
+.primary-button:hover {
+    -fx-background-color: -fx-accent-blue;
+}
+
+.primary-button .button-label, .primary-button .ikonli-font-icon {
+    -fx-text-fill: white;
+    -fx-icon-color: white;
+}
+
 /* 안전 삭제 버튼 */
-.tool-button.delete-button:hover {
+.delete-button:hover {
     -fx-background-color: #f87171;
 }
 
-.tool-button.delete-button .ikonli-font-icon {
+.delete-button .ikonli-font-icon {
     -fx-icon-color: #dc2626;
+}
+
+.delete-button .button-label {
+    -fx-text-fill: -fx-text-fill;
 }
 
 /* 액션 버튼 */
 .action-button {
-    -fx-padding: 8 16;
+    -fx-padding: 10 16;
 }
 
 .action-button .button-label, .action-button .ikonli-font-icon {
@@ -125,36 +153,38 @@
 .vertical-divider {
     -fx-background-color: -fx-border-color;
     -fx-pref-width: 1;
-    -fx-pref-height: 24;
+    -fx-pref-height: 28;
 }
 
 /* 콤보박스 */
-.combo-box {
+.modern-combo {
     -fx-background-color: derive(-fx-background-color, 10%);
     -fx-border-color: -fx-border-color;
     -fx-border-radius: -fx-border-radius;
-    -fx-padding: 2;
+    -fx-padding: 4;
+    -fx-font-size: 12px;
 }
 
-.combo-box:hover {
+.modern-combo:hover {
     -fx-border-color: derive(-fx-border-color, 20%);
 }
 
 /* 상태 컨테이너 */
 .status-container {
-    -fx-padding: 10;
+    -fx-padding: 8 12;
     -fx-background-color: derive(-fx-background-color, 10%);
     -fx-background-radius: -fx-border-radius;
     -fx-border-color: -fx-secondary-bg;
 }
 
-.status-container .label {
-    -fx-text-fill: -fx-text-fill;
-}
-
-.status-container .ikonli-font-icon {
+.status-icon {
     -fx-icon-size: 14;
     -fx-icon-color: -fx-text-fill;
+}
+
+.status-label {
+    -fx-text-fill: -fx-text-fill;
+    -fx-font-size: 12px;
 }
 
 /* 파일 테이블 */
@@ -166,7 +196,7 @@
 
 .file-table .column-header {
     -fx-background-color: -fx-background-color;
-    -fx-padding: 8;
+    -fx-padding: 10;
     -fx-border-width: 0 0 1 0;
     -fx-border-color: -fx-secondary-bg;
 }
@@ -174,6 +204,7 @@
 .file-table .column-header .label {
     -fx-font-weight: bold;
     -fx-text-fill: -fx-text-fill;
+    -fx-font-size: 12px;
 }
 
 .file-table .table-row-cell {
@@ -190,19 +221,34 @@
     -fx-background-color: -fx-accent-blue;
 }
 
-/* 진행 바 */
-.progress-bar {
-    -fx-pref-height: 8;
+.placeholder-icon {
+    -fx-icon-size: 32;
+    -fx-icon-color: -fx-status-text;
 }
 
-.progress-bar .bar {
+.placeholder-label {
+    -fx-text-fill: -fx-status-text;
+    -fx-font-size: 14px;
+}
+
+/* 진행 바 */
+.status-progress {
+    -fx-pref-height: 6;
+}
+
+.status-progress .bar {
     -fx-background-color: -fx-accent-blue;
     -fx-background-radius: -fx-border-radius;
 }
 
-.progress-bar .track {
+.status-progress .track {
     -fx-background-color: -fx-secondary-bg;
     -fx-background-radius: -fx-border-radius;
+}
+
+.progress-label {
+    -fx-text-fill: -fx-status-text;
+    -fx-font-size: 11px;
 }
 
 /* 상태 바 */
@@ -210,10 +256,10 @@
     -fx-background-color: derive(-fx-background-color, 10%);
     -fx-border-color: -fx-secondary-bg;
     -fx-border-width: 1 0 0 0;
-    -fx-padding: 5 10;
+    -fx-padding: 8 15;
 }
 
-.status-bar .label {
+.status-bar-label {
     -fx-text-fill: -fx-status-text;
     -fx-font-size: 12px;
 }
@@ -243,6 +289,7 @@
     -fx-border-color: -fx-border-color;
     -fx-border-radius: -fx-border-radius;
     -fx-padding: 6;
+    -fx-font-size: 12px;
 }
 
 .text-field:focused, .password-field:focused {
@@ -255,4 +302,5 @@
     -fx-text-fill: white;
     -fx-font-size: 12px;
     -fx-padding: 6 10;
+    -fx-background-radius: -fx-border-radius;
 }
