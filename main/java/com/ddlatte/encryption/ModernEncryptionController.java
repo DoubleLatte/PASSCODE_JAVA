@@ -35,15 +35,15 @@ public class ModernEncryptionController {
     @FXML private Button decryptButton;
     @FXML private Label memoryLabel;
     @FXML private Label itemCountLabel;
-    @FXML private Button toggleThemeButton; // 테마 전환 버튼 추가
+    @FXML private ProgressBar progressBar;
+    @FXML private Label progressLabel;
 
     private EncryptedFileSystem efs;
     private File currentDirectory;
     private ObservableList<FileItem> fileItems;
     private ScheduledExecutorService executorService;
     private Task<Void> currentTask;
-    private Stage progressStage;
-    private boolean isDarkMode = false; // 테마 상태 추적
+    private boolean isDarkMode = false;
 
     @FXML
     public void initialize() {
@@ -57,7 +57,6 @@ public class ModernEncryptionController {
             setupMemoryMonitoring();
             fileTable.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
             loadSettings();
-            setupThemeToggle(); // 테마 전환 설정
         } catch (Exception e) {
             showAlert(Alert.AlertType.ERROR, "초기화 오류", "UI 로드 실패: " + e.getMessage());
             Platform.exit();
@@ -69,12 +68,13 @@ public class ModernEncryptionController {
         try {
             encryptButton.setGraphic(new FontIcon("fas-lock"));
             decryptButton.setGraphic(new FontIcon("fas-unlock"));
-            toggleThemeButton.setGraphic(new FontIcon("fas-moon")); // 초기 아이콘 설정
         } catch (IllegalArgumentException e) {
             showAlert(Alert.AlertType.WARNING, "아이콘 오류", "아이콘 로드 실패: " + e.getMessage());
         }
         memoryLabel.setText("메모리: 초기화 중...");
         itemCountLabel.setText("항목 수: 0개");
+        progressBar.setVisible(false);
+        progressLabel.setVisible(false);
     }
 
     private void setupTableColumns() {
@@ -109,15 +109,9 @@ public class ModernEncryptionController {
             long maxMemory = runtime.maxMemory() / (1024 * 1024);
             long usedMemory = (runtime.totalMemory() - runtime.freeMemory()) / (1024 * 1024);
             long freeMemory = runtime.freeMemory() / (1024 * 1024);
-            String memoryInfo = String.format("메모리: 사용 %d MB / 최대 %d MB / 여유 %d MB", usedMemory, maxMemory, freeMemory);
+            String memoryInfo = String.format("사용 %d MB / 최대 %d MB", usedMemory, maxMemory);
             Platform.runLater(() -> memoryLabel.setText(memoryInfo));
         }, 0, 5, TimeUnit.SECONDS);
-    }
-
-    private void setupThemeToggle() {
-        toggleThemeButton.setOnAction(event -> toggleTheme());
-        // 시스템 테마에 따라 초기 테마 설정 (선택적)
-        // 예: if (isSystemDarkMode()) { toggleTheme(); }
     }
 
     @FXML
@@ -126,12 +120,10 @@ public class ModernEncryptionController {
         Scene scene = fileTable.getScene();
         if (isDarkMode) {
             scene.getRoot().getStyleClass().add("dark-mode");
-            toggleThemeButton.setGraphic(new FontIcon("fas-sun"));
         } else {
             scene.getRoot().getStyleClass().remove("dark-mode");
-            toggleThemeButton.setGraphic(new FontIcon("fas-moon"));
         }
-        saveSettings(); // 테마 설정 저장
+        saveSettings();
     }
 
     public void shutdown() {
@@ -215,7 +207,7 @@ public class ModernEncryptionController {
                 try {
                     efs.generateKey(keyFile.getPath(), pwd);
                     showAlert(Alert.AlertType.INFORMATION, "성공", "키가 성공적으로 생성되었습니다");
-                    statusLabel.setText("키 로드됨: " + keyFile.getPath());
+                    statusLabel.setText("키 로드됨: " + keyFile.getName());
                 } catch (Exception e) {
                     showAlert(Alert.AlertType.ERROR, "오류", e.getMessage());
                 }
@@ -259,7 +251,7 @@ public class ModernEncryptionController {
                 try {
                     efs.loadKey(keyFile.getPath(), result.get());
                     showAlert(Alert.AlertType.INFORMATION, "성공", "키가 성공적으로 로드되었습니다");
-                    statusLabel.setText("키 로드됨: " + keyFile.getPath());
+                    statusLabel.setText("키 로드됨: " + keyFile.getName());
                 } catch (Exception e) {
                     showAlert(Alert.AlertType.ERROR, "오류", e.getMessage());
                 }
@@ -296,6 +288,10 @@ public class ModernEncryptionController {
         currentTask = new Task<>() {
             @Override
             protected Void call() throws Exception {
+                Platform.runLater(() -> {
+                    progressBar.setVisible(true);
+                    progressLabel.setVisible(true);
+                });
                 int total = selectedItems.size();
                 if (total == 1 && !new File(currentDirectory, selectedItems.get(0).getName()).isDirectory()) {
                     final FileItem item = selectedItems.get(0);
@@ -424,12 +420,17 @@ public class ModernEncryptionController {
                 executor.shutdownNow();
 
                 updateProgress(1, 1);
-                updateMessage("암호화 완료 (100%)");
+                updateMessage("암호화 완료");
+                Platform.runLater(() -> {
+                    progressBar.setVisible(false);
+                    progressLabel.setVisible(false);
+                });
                 return null;
             }
         };
 
-        showProgressWindow();
+        progressBar.progressProperty().bind(currentTask.progressProperty());
+        progressLabel.textProperty().bind(currentTask.messageProperty());
         new Thread(currentTask).start();
     }
 
@@ -464,6 +465,10 @@ public class ModernEncryptionController {
         currentTask = new Task<>() {
             @Override
             protected Void call() throws Exception {
+                Platform.runLater(() -> {
+                    progressBar.setVisible(true);
+                    progressLabel.setVisible(true);
+                });
                 final int total = encryptedFiles.size();
                 for (int i = 0; i < total; i++) {
                     final FileItem item = encryptedFiles.get(i);
@@ -500,61 +505,18 @@ public class ModernEncryptionController {
                 executor.shutdownNow();
 
                 updateProgress(1, 1);
-                updateMessage("복호화 완료 (100%)");
+                updateMessage("복호화 완료");
+                Platform.runLater(() -> {
+                    progressBar.setVisible(false);
+                    progressLabel.setVisible(false);
+                });
                 return null;
             }
         };
 
-        showProgressWindow();
-        new Thread(currentTask).start();
-    }
-
-    private void showProgressWindow() {
-        if (progressStage == null) {
-            progressStage = new Stage();
-            progressStage.setTitle("암호화 진행 상황");
-            progressStage.getIcons().add(new javafx.scene.image.Image(getClass().getResourceAsStream("/icons/favicon.png")));
-
-            GridPane progressLayout = new GridPane();
-            progressLayout.setPadding(new Insets(15));
-            progressLayout.setHgap(10);
-            progressLayout.setVgap(10);
-            progressLayout.setAlignment(Pos.CENTER);
-
-            ProgressBar progressBar = new ProgressBar(0);
-            progressBar.setMaxWidth(Double.MAX_VALUE);
-            GridPane.setHgrow(progressBar, Priority.ALWAYS);
-
-            Label progressLabel = new Label("준비");
-            progressLabel.setMaxWidth(Double.MAX_VALUE);
-            progressLabel.setAlignment(Pos.CENTER);
-
-            progressLayout.add(progressBar, 0, 0);
-            progressLayout.add(progressLabel, 0, 1);
-
-            Scene scene = new Scene(progressLayout, 350, 130);
-            progressStage.setScene(scene);
-            progressStage.setMinWidth(300);
-            progressStage.setMinHeight(100);
-        }
-        progressStage.show();
-
-        GridPane layout = (GridPane) progressStage.getScene().getRoot();
-        ProgressBar progressBar = (ProgressBar) layout.getChildren().get(0);
-        Label progressLabel = (Label) layout.getChildren().get(1);
-
         progressBar.progressProperty().bind(currentTask.progressProperty());
         progressLabel.textProperty().bind(currentTask.messageProperty());
-
-        currentTask.setOnSucceeded(e -> closeProgressWindow());
-        currentTask.setOnFailed(e -> closeProgressWindow());
-        currentTask.setOnCancelled(e -> closeProgressWindow());
-    }
-
-    private void closeProgressWindow() {
-        if (progressStage != null && progressStage.isShowing()) {
-            progressStage.close();
-        }
+        new Thread(currentTask).start();
     }
 
     private void zipFiles(ObservableList<FileItem> items, File zipFile) throws IOException {
@@ -589,10 +551,10 @@ public class ModernEncryptionController {
         if (currentTask != null && currentTask.isRunning()) {
             if (currentTask.cancel(true)) {
                 Platform.runLater(() -> {
-                    if (progressStage != null) {
-                        ((Label) ((GridPane) progressStage.getScene().getRoot()).getChildren().get(1)).setText("작업 취소됨");
-                        ((ProgressBar) ((GridPane) progressStage.getScene().getRoot()).getChildren().get(0)).setProgress(0);
-                    }
+                    progressLabel.setText("작업 취소됨");
+                    progressBar.setProgress(0);
+                    progressBar.setVisible(false);
+                    progressLabel.setVisible(false);
                 });
             } else {
                 showAlert(Alert.AlertType.WARNING, "취소 오류", "작업 취소에 실패했습니다");
@@ -704,7 +666,7 @@ public class ModernEncryptionController {
     private void saveSettings() {
         Properties props = new Properties();
         props.setProperty("chunkSize", chunkSizeCombo.getValue());
-        props.setProperty("theme", isDarkMode ? "dark" : "light"); // 테마 설정 저장
+        props.setProperty("theme", isDarkMode ? "dark" : "light");
         try (FileOutputStream fos = new FileOutputStream("settings.properties")) {
             props.store(fos, "PASSCODE Settings");
         } catch (IOException e) {
@@ -721,7 +683,7 @@ public class ModernEncryptionController {
             currentDirectory = new File(props.getProperty("lastDirectory", System.getProperty("user.home")));
             isDarkMode = "dark".equals(props.getProperty("theme", "light"));
             if (isDarkMode) {
-                Platform.runLater(() -> toggleTheme()); // 다크 모드 적용
+                Platform.runLater(() -> toggleTheme());
             }
             updateFileList();
         } catch (IOException e) {
@@ -816,21 +778,6 @@ public class ModernEncryptionController {
         }
     }
 
-    private String generateUniqueOutputPath(String basePath) {
-        File file = new File(basePath);
-        if (!file.exists()) return basePath;
-        int counter = 1;
-        String newPath;
-        do {
-            newPath = basePath + "-" + counter++;
-            file = new File(newPath);
-            if (counter > 100) {
-                throw new RuntimeException("너무 많은 파일 이름 충돌");
-            }
-        } while (file.exists());
-        return newPath;
-    }
-
     @FXML
     private void onSecureDelete() {
         ObservableList<FileItem> selectedItems = fileTable.getSelectionModel().getSelectedItems();
@@ -863,5 +810,20 @@ public class ModernEncryptionController {
                 showAlert(Alert.AlertType.ERROR, "삭제 오류", "파일 삭제 실패: " + e.getMessage());
             }
         }
+    }
+
+    private String generateUniqueOutputPath(String basePath) {
+        File file = new File(basePath);
+        if (!file.exists()) return basePath;
+        int counter = 1;
+        String newPath;
+        do {
+            newPath = basePath + "-" + counter++;
+            file = new File(newPath);
+            if (counter > 100) {
+                throw new RuntimeException("너무 많은 파일 이름 충돌");
+            }
+        } while (file.exists());
+        return newPath;
     }
 }
