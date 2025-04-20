@@ -1,54 +1,64 @@
 package com.ddlatte.encryption;
 
+import javafx.application.Platform;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.control.ComboBox;
-import java.io.*;
-import java.util.Properties;
+import java.io.File;
 import java.util.function.Consumer;
+import java.util.logging.Logger;
+import java.util.prefs.Preferences;
 
 /**
- * Manages application settings including theme, chunk size, and last directory.
+ * Manages application settings using Java Preferences API with 1GB default chunk size.
  */
 public class SettingsManager {
-    private static final String SETTINGS_FILE = "settings.properties";
+    private static final Logger LOGGER = Logger.getLogger(SettingsManager.class.getName());
+    private static final String PREF_NODE = "/com/ddlatte/encryption";
+    private static final String DEFAULT_CHUNK_SIZE = "1 GB";
+    private static final String DEFAULT_DIRECTORY = System.getProperty("user.home");
+    private static final String DEFAULT_KEY_PATH = System.getProperty("user.home");
+    private static final String DEFAULT_THEME = "light";
+
+    private final Preferences prefs;
     private boolean isDarkMode = false;
-    private String lastKeyPath = System.getProperty("user.home");
+    private String lastKeyPath = DEFAULT_KEY_PATH;
+
+    public SettingsManager() {
+        prefs = Preferences.userRoot().node(PREF_NODE);
+    }
 
     public void saveSettings(String chunkSize, File currentDirectory) {
-        Properties props = new Properties();
-        props.setProperty("chunkSize", chunkSize);
-        props.setProperty("theme", isDarkMode ? "dark" : "light");
-        if (currentDirectory != null) {
-            props.setProperty("lastDirectory", currentDirectory.getAbsolutePath());
-        }
-        props.setProperty("lastKeyPath", lastKeyPath);
-
-        try (FileOutputStream fos = new FileOutputStream(SETTINGS_FILE)) {
-            props.store(fos, "PASSCODE Settings");
-        } catch (IOException e) {
-            // 로깅 또는 사용자 알림 추가 가능
+        try {
+            prefs.put("chunkSize", chunkSize != null ? chunkSize : DEFAULT_CHUNK_SIZE);
+            prefs.put("theme", isDarkMode ? "dark" : "light");
+            if (currentDirectory != null) {
+                prefs.put("lastDirectory", currentDirectory.getAbsolutePath());
+            }
+            prefs.put("lastKeyPath", lastKeyPath);
+            prefs.flush();
+            LOGGER.info("Settings saved successfully");
+        } catch (Exception e) {
+            LOGGER.warning("Failed to save settings: " + e.getMessage());
+            showAlert(Alert.AlertType.WARNING, "설정 저장 실패", "설정을 저장하지 못했습니다. 기본값이 사용됩니다.");
         }
     }
 
     public void loadSettings(ComboBox<String> chunkSizeCombo, Consumer<File> directorySetter, Scene scene) {
-        Properties props = new Properties();
-        File settingsFile = new File(SETTINGS_FILE);
-        try (FileInputStream fis = new FileInputStream(settingsFile)) {
-            props.load(fis);
-            chunkSizeCombo.setValue(props.getProperty("chunkSize", "32 MB"));
-            String lastDir = props.getProperty("lastDirectory", System.getProperty("user.home"));
+        try {
+            chunkSizeCombo.setValue(prefs.get("chunkSize", DEFAULT_CHUNK_SIZE));
+            String lastDir = prefs.get("lastDirectory", DEFAULT_DIRECTORY);
             directorySetter.accept(new File(lastDir));
-            isDarkMode = "dark".equals(props.getProperty("theme", "light"));
-            lastKeyPath = props.getProperty("lastKeyPath", System.getProperty("user.home"));
+            isDarkMode = "dark".equals(prefs.get("theme", DEFAULT_THEME));
+            lastKeyPath = prefs.get("lastKeyPath", DEFAULT_KEY_PATH);
             if (isDarkMode) {
                 scene.getRoot().getStyleClass().add("dark-mode");
             }
-        } catch (IOException e) {
-            if (!settingsFile.exists()) {
-                createDefaultSettings();
-            }
-            chunkSizeCombo.setValue("32 MB");
-            directorySetter.accept(new File(System.getProperty("user.home")));
+            LOGGER.info("Settings loaded successfully");
+        } catch (Exception e) {
+            LOGGER.warning("Failed to load settings: " + e.getMessage());
+            resetToDefaults(chunkSizeCombo, directorySetter);
+            showAlert(Alert.AlertType.WARNING, "설정 로드 실패", "기본 설정을 로드했습니다.");
         }
     }
 
@@ -70,16 +80,19 @@ public class SettingsManager {
         this.lastKeyPath = path;
     }
 
-    private void createDefaultSettings() {
-        Properties props = new Properties();
-        props.setProperty("chunkSize", "32 MB");
-        props.setProperty("lastDirectory", System.getProperty("user.home"));
-        props.setProperty("theme", "light");
-        props.setProperty("lastKeyPath", System.getProperty("user.home"));
-        try (FileOutputStream fos = new FileOutputStream(SETTINGS_FILE)) {
-            props.store(fos, "PASSCODE Default Settings");
-        } catch (IOException e) {
-            // 로깅 또는 사용자 알림 추가 가능
-        }
+    private void resetToDefaults(ComboBox<String> chunkSizeCombo, Consumer<File> directorySetter) {
+        chunkSizeCombo.setValue(DEFAULT_CHUNK_SIZE);
+        directorySetter.accept(new File(DEFAULT_DIRECTORY));
+        lastKeyPath = DEFAULT_KEY_PATH;
+        isDarkMode = false;
+    }
+
+    private void showAlert(Alert.AlertType type, String title, String content) {
+        Platform.runLater(() -> {
+            Alert alert = new Alert(type);
+            alert.setTitle(title);
+            alert.setContentText(content);
+            alert.showAndWait();
+        });
     }
 }

@@ -18,8 +18,7 @@ import java.io.File;
 import java.util.Optional;
 
 /**
- * Main controller for the encryption application UI.
- * Handles user interactions and delegates tasks to managers.
+ * Main controller for the encryption application UI with user-selectable chunk sizes.
  */
 public class ModernEncryptionController {
     @FXML private TableView<FileItem> fileTable;
@@ -69,26 +68,47 @@ public class ModernEncryptionController {
     private void setupTableColumns() {
         TableColumn<FileItem, String> nameCol = new TableColumn<>("이름");
         nameCol.setCellValueFactory(data -> data.getValue().nameProperty());
-        nameCol.prefWidthProperty().bind(fileTable.widthProperty().multiply(0.4));
+        nameCol.prefWidthProperty().bind(fileTable.widthProperty().multiply(0.3));
 
         TableColumn<FileItem, String> typeCol = new TableColumn<>("유형");
         typeCol.setCellValueFactory(data -> data.getValue().typeProperty());
-        typeCol.prefWidthProperty().bind(fileTable.widthProperty().multiply(0.2));
+        typeCol.prefWidthProperty().bind(fileTable.widthProperty().multiply(0.15));
 
         TableColumn<FileItem, String> sizeCol = new TableColumn<>("크기");
         sizeCol.setCellValueFactory(data -> data.getValue().sizeProperty());
-        sizeCol.prefWidthProperty().bind(fileTable.widthProperty().multiply(0.2));
+        typeCol.prefWidthProperty().bind(fileTable.widthProperty().multiply(0.15));
 
         TableColumn<FileItem, String> statusCol = new TableColumn<>("상태");
         statusCol.setCellValueFactory(data -> data.getValue().statusProperty());
-        statusCol.prefWidthProperty().bind(fileTable.widthProperty().multiply(0.2));
+        statusCol.prefWidthProperty().bind(fileTable.widthProperty().multiply(0.15));
 
-        fileTable.getColumns().setAll(nameCol, typeCol, sizeCol, statusCol);
+        TableColumn<FileItem, Number> progressCol = new TableColumn<>("진행률");
+        progressCol.setCellValueFactory(data -> data.getValue().progressProperty());
+        progressCol.setCellFactory(col -> new TableCell<>() {
+            private final ProgressBar progressBar = new ProgressBar(0);
+            {
+                progressBar.setPrefWidth(100);
+            }
+            @Override
+            protected void updateItem(Number progress, boolean empty) {
+                super.updateItem(progress, empty);
+                if (empty || progress == null) {
+                    setGraphic(null);
+                } else {
+                    progressBar.setProgress(progress.doubleValue());
+                    setGraphic(progressBar);
+                }
+            }
+        });
+        progressCol.prefWidthProperty().bind(fileTable.widthProperty().multiply(0.25));
+
+        fileTable.getColumns().setAll(nameCol, typeCol, sizeCol, statusCol, progressCol);
     }
 
     private void setupChunkSizeCombo() {
         chunkSizeCombo.getItems().addAll("1 MB", "16 MB", "32 MB", "64 MB", "128 MB", "256 MB", "512 MB", "1 GB");
-        chunkSizeCombo.setValue("32 MB");
+        chunkSizeCombo.setValue("1 GB"); // 기본값 1GB
+        chunkSizeCombo.valueProperty().addListener((obs, oldValue, newValue) -> saveSettings());
     }
 
     @FXML
@@ -109,6 +129,7 @@ public class ModernEncryptionController {
         if (directory != null) {
             fileSystemManager.setCurrentDirectory(directory);
             updateFileList();
+            saveSettings();
         }
     }
 
@@ -144,6 +165,7 @@ public class ModernEncryptionController {
                 showAlert(Alert.AlertType.INFORMATION, "키 생성 완료", "키가 성공적으로 생성되었습니다: " + keyFile.getName());
                 statusLabel.setText("키 로드됨: " + keyFile.getName());
                 settingsManager.setLastKeyPath(keyFile.getParent());
+                saveSettings();
             } catch (Exception e) {
                 showAlert(Alert.AlertType.ERROR, "키 생성 실패", "키 생성 중 오류: " + e.getMessage());
             }
@@ -172,6 +194,7 @@ public class ModernEncryptionController {
                     showAlert(Alert.AlertType.INFORMATION, "키 로드 완료", "키가 성공적으로 로드되었습니다: " + keyFile.getName());
                     statusLabel.setText("키 로드됨: " + keyFile.getName());
                     settingsManager.setLastKeyPath(keyFile.getParent());
+                    saveSettings();
                 } catch (Exception e) {
                     showAlert(Alert.AlertType.ERROR, "키 로드 실패", "키 로드 중 오류: " + e.getMessage());
                 }
@@ -195,7 +218,7 @@ public class ModernEncryptionController {
 
     @FXML
     private void onDecrypt() {
-        List<FileItem> encryptedFiles = fileTable.getSelectionModel().getSelectedItems().filtered(item ->
+        ObservableList<FileItem> encryptedFiles = fileTable.getSelectionModel().getSelectedItems().filtered(item ->
                 item.getName().endsWith(".lock"));
         if (encryptedFiles.isEmpty()) {
             showAlert(Alert.AlertType.WARNING, "암호화 파일 미선택", "복호화할 암호화 파일을 선택해주세요.");

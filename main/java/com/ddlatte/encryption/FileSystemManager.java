@@ -3,6 +3,7 @@ package com.ddlatte.encryption;
 import javafx.application.Platform;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableView;
 import java.io.*;
@@ -18,7 +19,7 @@ import java.util.zip.ZipOutputStream;
 import java.util.ArrayList;
 
 /**
- * Manages file system operations including encryption, decryption, and file listing.
+ * Manages file system operations with optimized progress tracking for large chunk sizes.
  */
 public class FileSystemManager {
     private final EncryptedFileSystem efs;
@@ -53,12 +54,7 @@ public class FileSystemManager {
                 if (files != null) {
                     Arrays.sort(files, (f1, f2) -> Long.compare(f2.length(), f1.length()));
                     for (File file : files) {
-                        fileItems.add(new FileItem(file) {
-                            @Override
-                            public StringProperty typeProperty() {
-                                return new SimpleStringProperty(file.isDirectory() ? "폴더" : Utils.getFileExtension(file));
-                            }
-                        });
+                        fileItems.add(new FileItem(file));
                     }
                     Platform.runLater(() -> itemCountLabel.setText("항목 수: " + files.length + "개"));
                 }
@@ -98,6 +94,8 @@ public class FileSystemManager {
                 ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
                 List<Future<?>> futures = new ArrayList<>();
                 int chunkSize = Utils.parseChunkSize(chunkSizeStr);
+                long totalSize = selectedItems.stream().map(item -> new File(currentDirectory, item.getName()).length()).reduce(0L, Long::sum);
+                long[] processedSize = {0}; // 스레드 안전성을 위해 배열 사용
 
                 if (selectedItems.size() == 1 && !new File(currentDirectory, selectedItems.get(0).getName()).isDirectory()) {
                     FileItem item = selectedItems.get(0);
@@ -107,10 +105,16 @@ public class FileSystemManager {
 
                     Files.copy(file.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
                     try {
+                        long fileSize = file.length();
                         Future<?> future = executor.submit(() -> {
                             try {
                                 updateMessage("암호화 중: " + item.getName());
                                 String encryptedPath = efs.encryptFile(file.getPath(), chunkSize);
+                                synchronized (this) {
+                                    processedSize[0] += fileSize;
+                                    updateProgress(processedSize[0], totalSize);
+                                    item.setProgress((double) processedSize[0] / totalSize);
+                                }
                                 String decryptedPath = efs.decryptFile(encryptedPath, tempDecrypted.getPath());
                                 String originalHash = Utils.calculateFileHash(file);
                                 String decryptedHash = Utils.calculateFileHash(tempDecrypted);
@@ -161,6 +165,11 @@ public class FileSystemManager {
                         try {
                             updateMessage("압축 파일 암호화 중...");
                             String encryptedPath = efs.encryptFile(zipFile.getPath(), chunkSize);
+                            synchronized (this) {
+                                processedSize[0] += zipFile.length();
+                                updateProgress(processedSize[0], totalSize);
+                                selectedItems.forEach(item -> item.setProgress(1.0));
+                            }
                             String decryptedPath = efs.decryptFile(encryptedPath, tempDecryptedZip.getPath());
                             String originalHash = Utils.calculateFileHash(zipFile);
                             String decryptedHash = Utils.calculateFileHash(tempDecryptedZip);
@@ -214,18 +223,24 @@ public class FileSystemManager {
                 ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
                 List<Future<?>> futures = new ArrayList<>();
                 int total = encryptedFiles.size();
+                long totalSize = encryptedFiles.stream().map(item -> new File(currentDirectory, item.getName()).length()).reduce(0L, Long::sum);
+                long[] processedSize = {0};
 
                 for (int i = 0; i < total; i++) {
                     FileItem item = encryptedFiles.get(i);
                     File file = new File(currentDirectory, item.getName());
                     String outputPath = Utils.generateUniqueOutputPath(file.getPath().substring(0, file.getPath().length() - 5));
-                    int currentIndex = i;
+                    long fileSize = file.length();
 
                     Future<?> future = executor.submit(() -> {
                         try {
-                            updateProgress(currentIndex, total);
                             updateMessage("복호화 중: " + item.getName());
                             String decryptedPath = efs.decryptFile(file.getPath(), outputPath);
+                            synchronized (this) {
+                                processedSize[0] += fileSize;
+                                updateProgress(processedSize[0], totalSize);
+                                item.setProgress((double) processedSize[0] / totalSize);
+                            }
                             efs.deleteEncryptedFile(file.getPath());
                             Platform.runLater(() -> {
                                 synchronized (fileItems) {
@@ -262,7 +277,7 @@ public class FileSystemManager {
         memoryMonitorExecutor = Executors.newSingleThreadScheduledExecutor();
         memoryMonitorExecutor.scheduleAtFixedRate(() -> {
             Runtime runtime = Runtime.getRuntime();
-            long usedMemory = (runtime.totalMemory() - runtime.freeMemory()) / (1024 * 1024);
+            long usedMemory = (runtime.totalMemory() - runtime.freeMemory()) / (1024 *  W1024);
             long maxMemory = runtime.maxMemory() / (1024 * 1024);
             String memoryInfo = String.format("사용 %d MB / 최대 %d MB", usedMemory, maxMemory);
             Platform.runLater(() -> memoryLabel.setText(memoryInfo));
