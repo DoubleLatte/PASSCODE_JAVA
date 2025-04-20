@@ -1,7 +1,13 @@
+@font-face {
+    font-family: '';
+    src: url('');
+}
+
 /* 메인 컨테이너 스타일 */
 .modern-container {
     -fx-background-color: #f9fafb;
-    -fx-font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    -fx-font-family: 'Noto Sans KR', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    -fx-font-size: 13px;
 }
 
 /* 메뉴바 스타일 */
@@ -20,6 +26,7 @@
 
 .modern-menu .menu-item .label {
     -fx-font-size: 13px;
+    -fx-font-family: 'Noto Sans KR';
 }
 
 .modern-menu .menu-item:hover {
@@ -50,10 +57,24 @@
     -fx-icon-color: #374151;
 }
 
+/* 안전 삭제 버튼 스타일 */
+.tool-button.delete-button {
+    -fx-background-color: transparent;
+}
+
+.tool-button.delete-button:hover {
+    -fx-background-color: #f87171;
+}
+
+.tool-button.delete-button .ikonli-font-icon {
+    -fx-icon-color: #dc2626;
+}
+
 /* 구분선 스타일 */
-.separator:vertical .line {
+.vertical-divider {
     -fx-background-color: #d1d5db;
-    -fx-padding: 0 1;
+    -fx-pref-width: 1px;
+    -fx-pref-height: 24px;
 }
 
 /* 콤보박스 스타일 */
@@ -62,6 +83,7 @@
     -fx-border-color: #d1d5db;
     -fx-border-radius: 4;
     -fx-padding: 2;
+    -fx-font-family: 'Noto Sans KR';
 }
 
 .combo-box:hover {
@@ -78,6 +100,7 @@
 .action-button .button-label {
     -fx-text-fill: white;
     -fx-font-size: 13px;
+    -fx-font-family: 'Noto Sans KR';
 }
 
 .action-button .ikonli-font-icon {
@@ -112,6 +135,7 @@
 
 .status-container .label {
     -fx-text-fill: #374151;
+    -fx-font-family: 'Noto Sans KR';
 }
 
 .status-container .ikonli-font-icon {
@@ -137,6 +161,7 @@
 .file-table .column-header .label {
     -fx-font-weight: bold;
     -fx-text-fill: #374151;
+    -fx-font-family: 'Noto Sans KR';
 }
 
 .file-table .table-row-cell {
@@ -150,8 +175,7 @@
 }
 
 .file-table .table-row-cell:selected {
-    -fx-text-color: white;
-    -fx-background-color: #3399FF;
+    -fx-background-color: #3b82f6;
 }
 
 /* 진행 바 스타일 */
@@ -176,6 +200,7 @@
 .progress-container .label {
     -fx-text-fill: #6b7280;
     -fx-font-size: 12px;
+    -fx-font-family: 'Noto Sans KR';
 }
 
 /* 상태 바 스타일 */
@@ -188,6 +213,7 @@
 .status-bar .label {
     -fx-text-fill: #6b7280;
     -fx-font-size: 12px;
+    -fx-font-family: 'Noto Sans KR';
 }
 
 .status-bar #memoryLabel {
@@ -207,6 +233,7 @@
 
 .dialog-pane .content {
     -fx-padding: 16;
+    -fx-font-family: 'Noto Sans KR';
 }
 
 /* 텍스트 필드 스타일 */
@@ -215,6 +242,7 @@
     -fx-border-color: #d1d5db;
     -fx-border-radius: 4;
     -fx-padding: 6;
+    -fx-font-family: 'Noto Sans KR';
 }
 
 .text-field:focused {
@@ -227,6 +255,7 @@
     -fx-border-color: #d1d5db;
     -fx-border-radius: 4;
     -fx-padding: 6;
+    -fx-font-family: 'Noto Sans KR';
 }
 
 .password-field:focused {
@@ -239,8 +268,5 @@
     -fx-text-fill: white;
     -fx-font-size: 12px;
     -fx-padding: 6 10;
-}
-.vertical-divider {
-    -fx-background-color: gray;
-    -fx-pref-height: 20px; /* 버튼 높이에 맞게 조정 */
+    -fx-font-family: 'Noto Sans KR';
 }
