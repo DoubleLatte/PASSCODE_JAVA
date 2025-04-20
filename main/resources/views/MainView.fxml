@@ -35,6 +35,13 @@
                 </graphic>
             </MenuItem>
         </Menu>
+        <Menu text="파일 관리">
+            <MenuItem text="안전 삭제" onAction="#onSecureDelete">
+                <graphic>
+                    <FontIcon iconLiteral="fas-trash-alt" />
+                </graphic>
+            </MenuItem>
+        </Menu>
         <Menu text="도움말">
             <MenuItem text="정보" onAction="#showInfo">
                 <graphic>
@@ -64,7 +71,6 @@
                 </tooltip>
             </Button>
 
-            <!-- 동기화 버튼 추가 -->
             <Button onAction="#refreshFileList" styleClass="tool-button">
                 <graphic>
                     <FontIcon iconLiteral="fas-sync" />
@@ -97,6 +103,18 @@
                 </graphic>
                 <tooltip>
                     <Tooltip text="키 로드" />
+                </tooltip>
+            </Button>
+
+            <Pane prefWidth="5" styleClass="vertical-divider" />
+
+            <!-- 안전 삭제 버튼 추가 -->
+            <Button onAction="#onSecureDelete" styleClass="tool-button">
+                <graphic>
+                    <FontIcon iconLiteral="fas-trash-alt" />
+                </graphic>
+                <tooltip>
+                    <Tooltip text="안전 삭제" />
                 </tooltip>
             </Button>
 
