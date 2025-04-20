@@ -7,42 +7,53 @@
 
 <VBox xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
       fx:controller="com.ddlatte.encryption.ModernEncryptionController"
-      styleClass="modern-container" spacing="0">
+      styleClass="modern-container" spacing="0" VBox.vgrow="ALWAYS">
 
+    <!-- 메뉴바 -->
     <MenuBar styleClass="modern-menu">
-        <Menu text="파일">
-            <MenuItem text="폴더 열기" onAction="#onOpenFolder">
+        <Menu text="파일(_F)">
+            <MenuItem text="폴더 열기" onAction="#onOpenFolder" accelerator="Ctrl+O">
                 <graphic>
                     <FontIcon iconLiteral="fas-folder-open" />
                 </graphic>
             </MenuItem>
             <SeparatorMenuItem />
-            <MenuItem text="종료" onAction="#onExit">
+            <MenuItem text="종료" onAction="#onExit" accelerator="Alt+F4">
                 <graphic>
                     <FontIcon iconLiteral="fas-sign-out-alt" />
                 </graphic>
             </MenuItem>
-        </Menu>
-        <Menu text="키">
-            <MenuItem text="새 키 생성" onAction="#onCreateKey">
+        Menu>
+        <Menu text="키(_K)">
+            <MenuItem text="새 키 생성" onAction="#onCreateKey" accelerator="Ctrl+N">
                 <graphic>
                     <FontIcon iconLiteral="fas-key" />
                 </graphic>
             </MenuItem>
-            <MenuItem text="키 로드" onAction="#onLoadKey">
+            <MenuItem text="키 로드" onAction="#onLoadKey" accelerator="Ctrl+L">
                 <graphic>
                     <FontIcon iconLiteral="fas-upload" />
                 </graphic>
             </MenuItem>
         </Menu>
-        <Menu text="파일 관리">
-            <MenuItem text="안전 삭제" onAction="#onSecureDelete">
+        <Menu text="파일 관리(_M)">
+            <MenuItem text="안전 삭제" onAction="#onSecureDelete" accelerator="Ctrl+D">
                 <graphic>
                     <FontIcon iconLiteral="fas-trash-alt" />
                 </graphic>
             </MenuItem>
+            <MenuItem text="목록 갱신" onAction="#refreshFileList" accelerator="F5">
+                <graphic>
+                    <FontIcon iconLiteral="fas-sync" />
+                </graphic>
+            </MenuItem>
         </Menu>
-        <Menu text="도움말">
+        <Menu text="도움말(_H)">
+            <MenuItem text="테마 전환" onAction="#toggleTheme" accelerator="Ctrl+T">
+                <graphic>
+                    <FontIcon iconLiteral="fas-moon" />
+                </graphic>
+            </MenuItem>
             <MenuItem text="정보" onAction="#showInfo">
                 <graphic>
                     <FontIcon iconLiteral="fas-info-circle" />
@@ -56,27 +67,23 @@
         </Menu>
     </MenuBar>
 
-    <VBox spacing="0.1" styleClass="content-container">
+    <!-- 메인 콘텐츠 -->
+    <VBox spacing="10" styleClass="content-container" VBox.vgrow="ALWAYS">
         <padding>
-            <Insets top="0.1" right="0.1" bottom="0.1" left="0.1"/>
+            <Insets top="10" right="10" bottom="10" left="10"/>
         </padding>
 
-        <HBox spacing="10" alignment="CENTER_LEFT" styleClass="toolbar">
-            <Button onAction="#onOpenFolder" styleClass="tool-button">
+        <!-- 툴바 -->
+        <HBox spacing="12" alignment="CENTER_LEFT" styleClass="toolbar">
+            <Button onAction="#onOpenFolder" styleClass="tool-button, primary-button">
                 <graphic>
-                    <FontIcon iconLiteral="fas-folder-open" />
+                    <HBox spacing="4" alignment="CENTER">
+                        <FontIcon iconLiteral="fas-folder-open" />
+                        <Label text="폴더 열기" styleClass="button-label" />
+                    </HBox>
                 </graphic>
                 <tooltip>
-                    <Tooltip text="폴더 열기" />
-                </tooltip>
-            </Button>
-
-            <Button onAction="#refreshFileList" styleClass="tool-button">
-                <graphic>
-                    <FontIcon iconLiteral="fas-sync" />
-                </graphic>
-                <tooltip>
-                    <Tooltip text="파일 목록 갱신" />
+                    <Tooltip text="작업할 폴더를 선택합니다" />
                 </tooltip>
             </Button>
 
@@ -84,88 +91,102 @@
 
             <Button onAction="#onCreateKey" styleClass="tool-button">
                 <graphic>
-                    <HBox spacing="2">
+                    <HBox spacing="4" alignment="CENTER">
                         <FontIcon iconLiteral="fas-plus" />
-                        <FontIcon iconLiteral="fas-key" />
+                        <Label text="새 키" styleClass="button-label" />
                     </HBox>
                 </graphic>
                 <tooltip>
-                    <Tooltip text="새 키 생성" />
+                    <Tooltip text="새로운 암호화 키를 생성합니다" />
                 </tooltip>
             </Button>
 
             <Button onAction="#onLoadKey" styleClass="tool-button">
                 <graphic>
-                    <HBox spacing="2">
+                    <HBox spacing="4" alignment="CENTER">
                         <FontIcon iconLiteral="fas-upload" />
-                        <FontIcon iconLiteral="fas-key" />
+                        <Label text="키 로드" styleClass="button-label" />
                     </HBox>
                 </graphic>
                 <tooltip>
-                    <Tooltip text="키 로드" />
+                    <Tooltip text="기존 키 파일을 로드합니다" />
                 </tooltip>
             </Button>
 
             <Pane prefWidth="5" styleClass="vertical-divider" />
 
-            <!-- 안전 삭제 버튼 추가 -->
-            <Button onAction="#onSecureDelete" styleClass="tool-button">
+            <Button onAction="#onSecureDelete" styleClass="tool-button, delete-button">
                 <graphic>
-                    <FontIcon iconLiteral="fas-trash-alt" />
+                    <HBox spacing="4" alignment="CENTER">
+                        <FontIcon iconLiteral="fas-trash-alt" />
+                        <Label text="안전 삭제" styleClass="button-label" />
+                    </HBox>
                 </graphic>
                 <tooltip>
-                    <Tooltip text="안전 삭제" />
+                    <Tooltip text="선택한 파일을 안전하게 삭제합니다" />
                 </tooltip>
             </Button>
-
-            <Pane prefWidth="5" styleClass="vertical-divider" />
-
-            <Label text="청크 크기:" />
-            <ComboBox fx:id="chunkSizeCombo" />
 
             <Region HBox.hgrow="ALWAYS" />
 
+            <Label text="청크 크기:" styleClass="toolbar-label" />
+            <ComboBox fx:id="chunkSizeCombo" prefWidth="100" styleClass="modern-combo" />
+
             <Button fx:id="encryptButton" onAction="#onEncrypt" styleClass="action-button, encrypt-button">
                 <graphic>
-                    <HBox spacing="5" alignment="CENTER">
+                    <HBox spacing="6" alignment="CENTER">
                         <FontIcon iconLiteral="fas-lock" />
                         <Label text="암호화" styleClass="button-label" />
                     </HBox>
                 </graphic>
+                <tooltip>
+                    <Tooltip text="선택한 파일을 암호화합니다" />
+                </tooltip>
             </Button>
 
             <Button fx:id="decryptButton" onAction="#onDecrypt" styleClass="action-button, decrypt-button">
                 <graphic>
-                    <HBox spacing="5" alignment="CENTER">
+                    <HBox spacing="6" alignment="CENTER">
                         <FontIcon iconLiteral="fas-unlock" />
                         <Label text="복호화" styleClass="button-label" />
                     </HBox>
                 </graphic>
+                <tooltip>
+                    <Tooltip text="선택한 암호화 파일을 복호화합니다" />
+                </tooltip>
             </Button>
         </HBox>
 
-        <VBox styleClass="status-container" spacing="5">
-            <Label fx:id="statusLabel" text="키 상태: 키가 로드되지 않음">
-                <graphic>
-                    <FontIcon iconLiteral="fas-key" />
-                </graphic>
-            </Label>
-        </VBox>
+        <!-- 상태 컨테이너 -->
+        <HBox styleClass="status-container" alignment="CENTER_LEFT" spacing="10">
+            <padding>
+                <Insets top="8" right="12" bottom="8" left="12"/>
+            </padding>
+            <FontIcon iconLiteral="fas-key" styleClass="status-icon" />
+            <Label fx:id="statusLabel" text="키 상태: 키가 로드되지 않음" styleClass="status-label" />
+        </HBox>
 
+        <!-- 파일 테이블 -->
         <TableView fx:id="fileTable" VBox.vgrow="ALWAYS" styleClass="file-table">
             <placeholder>
-                <Label text="현재 디렉토리에 파일이 없습니다" />
+                <VBox spacing="10" alignment="CENTER">
+                    <FontIcon iconLiteral="fas-folder" styleClass="placeholder-icon" />
+                    <Label text="폴더를 열어 파일을 표시하세요" styleClass="placeholder-label" />
+                </VBox>
             </placeholder>
         </TableView>
     </VBox>
 
-    <HBox styleClass="status-bar" alignment="CENTER_LEFT" spacing="10">
+    <!-- 상태 바 -->
+    <HBox styleClass="status-bar" alignment="CENTER_LEFT" spacing="15">
         <padding>
-            <Insets top="5" right="10" bottom="5" left="10"/>
+            <Insets top="8" right="15" bottom="8" left="15"/>
         </padding>
-        <Label fx:id="itemCountLabel" text="준비 - 0 항목" />
+        <Label fx:id="itemCountLabel" text="준비 - 0 항목" styleClass="status-bar-label" />
         <Region HBox.hgrow="ALWAYS" />
-        <Label fx:id="memoryLabel" text="메모리: 초기화 중..." />
+        <ProgressBar fx:id="progressBar" prefWidth="100" prefHeight="6" styleClass="status-progress" visible="false" />
+        <Label fx:id="progressLabel" text="" styleClass="progress-label" visible="false" />
+        <Label fx:id="memoryLabel" text="메모리: 초기화 중..." styleClass="status-bar-label" />
     </HBox>
 
 </VBox>
