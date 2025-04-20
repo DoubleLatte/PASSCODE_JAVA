@@ -35,6 +35,7 @@ public class ModernEncryptionController {
     @FXML private Button decryptButton;
     @FXML private Label memoryLabel;
     @FXML private Label itemCountLabel;
+    @FXML private Button toggleThemeButton; // 테마 전환 버튼 추가
 
     private EncryptedFileSystem efs;
     private File currentDirectory;
@@ -42,6 +43,7 @@ public class ModernEncryptionController {
     private ScheduledExecutorService executorService;
     private Task<Void> currentTask;
     private Stage progressStage;
+    private boolean isDarkMode = false; // 테마 상태 추적
 
     @FXML
     public void initialize() {
@@ -55,6 +57,7 @@ public class ModernEncryptionController {
             setupMemoryMonitoring();
             fileTable.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
             loadSettings();
+            setupThemeToggle(); // 테마 전환 설정
         } catch (Exception e) {
             showAlert(Alert.AlertType.ERROR, "초기화 오류", "UI 로드 실패: " + e.getMessage());
             Platform.exit();
@@ -66,6 +69,7 @@ public class ModernEncryptionController {
         try {
             encryptButton.setGraphic(new FontIcon("fas-lock"));
             decryptButton.setGraphic(new FontIcon("fas-unlock"));
+            toggleThemeButton.setGraphic(new FontIcon("fas-moon")); // 초기 아이콘 설정
         } catch (IllegalArgumentException e) {
             showAlert(Alert.AlertType.WARNING, "아이콘 오류", "아이콘 로드 실패: " + e.getMessage());
         }
@@ -108,6 +112,26 @@ public class ModernEncryptionController {
             String memoryInfo = String.format("메모리: 사용 %d MB / 최대 %d MB / 여유 %d MB", usedMemory, maxMemory, freeMemory);
             Platform.runLater(() -> memoryLabel.setText(memoryInfo));
         }, 0, 5, TimeUnit.SECONDS);
+    }
+
+    private void setupThemeToggle() {
+        toggleThemeButton.setOnAction(event -> toggleTheme());
+        // 시스템 테마에 따라 초기 테마 설정 (선택적)
+        // 예: if (isSystemDarkMode()) { toggleTheme(); }
+    }
+
+    @FXML
+    private void toggleTheme() {
+        isDarkMode = !isDarkMode;
+        Scene scene = fileTable.getScene();
+        if (isDarkMode) {
+            scene.getRoot().getStyleClass().add("dark-mode");
+            toggleThemeButton.setGraphic(new FontIcon("fas-sun"));
+        } else {
+            scene.getRoot().getStyleClass().remove("dark-mode");
+            toggleThemeButton.setGraphic(new FontIcon("fas-moon"));
+        }
+        saveSettings(); // 테마 설정 저장
     }
 
     public void shutdown() {
@@ -254,8 +278,6 @@ public class ModernEncryptionController {
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setTitle("암호화 확인");
         confirm.setHeaderText("선택한 항목을 암호화하시겠습니까?");
-
-// Set the icon for the alert dialog
         Stage alertStage = (Stage) confirm.getDialogPane().getScene().getWindow();
         alertStage.getIcons().add(new javafx.scene.image.Image(getClass().getResourceAsStream("/icons/favicon.png")));
 
@@ -424,8 +446,6 @@ public class ModernEncryptionController {
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setTitle("복호화 확인");
         confirm.setHeaderText("선택한 파일을 복호화하시겠습니까?");
-
-// Set the icon for the alert dialog
         Stage alertStage = (Stage) confirm.getDialogPane().getScene().getWindow();
         alertStage.getIcons().add(new javafx.scene.image.Image(getClass().getResourceAsStream("/icons/favicon.png")));
 
@@ -495,28 +515,23 @@ public class ModernEncryptionController {
             progressStage.setTitle("암호화 진행 상황");
             progressStage.getIcons().add(new javafx.scene.image.Image(getClass().getResourceAsStream("/icons/favicon.png")));
 
-            // Use GridPane for more flexible layout
             GridPane progressLayout = new GridPane();
             progressLayout.setPadding(new Insets(15));
             progressLayout.setHgap(10);
             progressLayout.setVgap(10);
             progressLayout.setAlignment(Pos.CENTER);
 
-            // Responsive ProgressBar
             ProgressBar progressBar = new ProgressBar(0);
             progressBar.setMaxWidth(Double.MAX_VALUE);
             GridPane.setHgrow(progressBar, Priority.ALWAYS);
 
-            // Styled Label
             Label progressLabel = new Label("준비");
             progressLabel.setMaxWidth(Double.MAX_VALUE);
             progressLabel.setAlignment(Pos.CENTER);
 
-            // Add components to GridPane with constraints
             progressLayout.add(progressBar, 0, 0);
             progressLayout.add(progressLabel, 0, 1);
 
-            // Scene with responsive sizing
             Scene scene = new Scene(progressLayout, 350, 130);
             progressStage.setScene(scene);
             progressStage.setMinWidth(300);
@@ -524,16 +539,13 @@ public class ModernEncryptionController {
         }
         progressStage.show();
 
-        // Retrieve components from the layout
         GridPane layout = (GridPane) progressStage.getScene().getRoot();
         ProgressBar progressBar = (ProgressBar) layout.getChildren().get(0);
         Label progressLabel = (Label) layout.getChildren().get(1);
 
-        // Bind progress and message properties
         progressBar.progressProperty().bind(currentTask.progressProperty());
         progressLabel.textProperty().bind(currentTask.messageProperty());
 
-        // Handle task completion states
         currentTask.setOnSucceeded(e -> closeProgressWindow());
         currentTask.setOnFailed(e -> closeProgressWindow());
         currentTask.setOnCancelled(e -> closeProgressWindow());
@@ -578,8 +590,8 @@ public class ModernEncryptionController {
             if (currentTask.cancel(true)) {
                 Platform.runLater(() -> {
                     if (progressStage != null) {
-                        ((Label) ((VBox) progressStage.getScene().getRoot()).getChildren().get(1)).setText("작업 취소됨");
-                        ((ProgressBar) ((VBox) progressStage.getScene().getRoot()).getChildren().get(0)).setProgress(0);
+                        ((Label) ((GridPane) progressStage.getScene().getRoot()).getChildren().get(1)).setText("작업 취소됨");
+                        ((ProgressBar) ((GridPane) progressStage.getScene().getRoot()).getChildren().get(0)).setProgress(0);
                     }
                 });
             } else {
@@ -594,14 +606,12 @@ public class ModernEncryptionController {
             if (currentDirectory != null && currentDirectory.exists()) {
                 File[] files = currentDirectory.listFiles();
                 if (files != null) {
-                    // 파일 배열을 크기순으로 정렬 (내림차순)
                     Arrays.sort(files, (f1, f2) -> {
                         long size1 = f1.isDirectory() ? 0 : f1.length();
                         long size2 = f2.isDirectory() ? 0 : f2.length();
-                        return Long.compare(size2, size1); // 내림차순
+                        return Long.compare(size2, size1);
                     });
 
-                    // 정렬된 파일을 fileItems에 추가
                     for (File file : files) {
                         fileItems.add(new FileItem(file) {
                             @Override
@@ -694,6 +704,7 @@ public class ModernEncryptionController {
     private void saveSettings() {
         Properties props = new Properties();
         props.setProperty("chunkSize", chunkSizeCombo.getValue());
+        props.setProperty("theme", isDarkMode ? "dark" : "light"); // 테마 설정 저장
         try (FileOutputStream fos = new FileOutputStream("settings.properties")) {
             props.store(fos, "PASSCODE Settings");
         } catch (IOException e) {
@@ -708,12 +719,17 @@ public class ModernEncryptionController {
             props.load(fis);
             chunkSizeCombo.setValue(props.getProperty("chunkSize", "32 MB"));
             currentDirectory = new File(props.getProperty("lastDirectory", System.getProperty("user.home")));
+            isDarkMode = "dark".equals(props.getProperty("theme", "light"));
+            if (isDarkMode) {
+                Platform.runLater(() -> toggleTheme()); // 다크 모드 적용
+            }
             updateFileList();
         } catch (IOException e) {
             if (!settingsFile.exists()) {
                 try (FileOutputStream fos = new FileOutputStream(settingsFile)) {
                     props.setProperty("chunkSize", "32 MB");
                     props.setProperty("lastDirectory", System.getProperty("user.home"));
+                    props.setProperty("theme", "light");
                     props.store(fos, "PASSCODE Default Settings");
                 } catch (IOException ex) {
                     showAlert(Alert.AlertType.ERROR, "기본 설정 생성 실패", ex.getMessage());
@@ -813,5 +829,39 @@ public class ModernEncryptionController {
             }
         } while (file.exists());
         return newPath;
+    }
+
+    @FXML
+    private void onSecureDelete() {
+        ObservableList<FileItem> selectedItems = fileTable.getSelectionModel().getSelectedItems();
+        if (selectedItems.isEmpty()) {
+            showAlert(Alert.AlertType.WARNING, "경고", "선택된 파일이 없습니다");
+            return;
+        }
+
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("안전 삭제 확인");
+        confirm.setHeaderText("선택한 파일을 안전하게 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.");
+        Stage alertStage = (Stage) confirm.getDialogPane().getScene().getWindow();
+        alertStage.getIcons().add(new javafx.scene.image.Image(getClass().getResourceAsStream("/icons/favicon.png")));
+
+        Optional<ButtonType> result = confirm.showAndWait();
+        if (result.isEmpty() || result.get() != ButtonType.OK) return;
+
+        for (FileItem item : selectedItems) {
+            File file = new File(currentDirectory, item.getName());
+            try {
+                efs.secureDelete(file.getPath());
+                Platform.runLater(() -> {
+                    synchronized (fileItems) {
+                        fileItems.remove(item);
+                        fileTable.refresh();
+                        itemCountLabel.setText("항목 수: " + fileItems.size() + "개");
+                    }
+                });
+            } catch (Exception e) {
+                showAlert(Alert.AlertType.ERROR, "삭제 오류", "파일 삭제 실패: " + e.getMessage());
+            }
+        }
     }
 }
