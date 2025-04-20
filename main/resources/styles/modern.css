@@ -1,67 +1,90 @@
-@font-face {
-    font-family: '';
-    src: url('');
-}
-
-/* 메인 컨테이너 스타일 */
-.modern-container {
-    -fx-background-color: #f9fafb;
+/* 글로벌 변수 정의 */
+:root {
+    /* 라이트 모드 기본값 */
     -fx-font-family: 'Noto Sans KR', 'Segoe UI', system-ui, -apple-system, sans-serif;
     -fx-font-size: 13px;
+    -fx-background-color: #f9fafb;
+    -fx-text-fill: #374151;
+    -fx-border-color: #d1d5db;
+    -fx-border-radius: 4;
+    -fx-hover-bg: #d1d5db;
+    -fx-accent-blue: #3b82f6;
+    -fx-accent-blue-hover: #2563eb;
+    -fx-accent-green: #10b981;
+    -fx-accent-green-hover: #059669;
+    -fx-secondary-bg: #e5e7eb;
+    -fx-table-row-hover: #f3f4f6;
+    -fx-status-text: #6b7280;
 }
 
-/* 메뉴바 스타일 */
+/* 다크 모드 변수 */
+.dark-mode:root {
+    -fx-background-color: #1f2a44;
+    -fx-text-fill: #e5e7eb;
+    -fx-border-color: #4b5e7e;
+    -fx-hover-bg: #374151;
+    -fx-accent-blue: #60a5fa;
+    -fx-accent-blue-hover: #3b82f6;
+    -fx-accent-green: #34d399;
+    -fx-accent-green-hover: #10b981;
+    -fx-secondary-bg: #2d3748;
+    -fx-table-row-hover: #374151;
+    -fx-status-text: #9ca3af;
+}
+
+/* 메인 컨테이너 */
+.modern-container {
+    -fx-background-color: -fx-background-color;
+}
+
+/* 메뉴바 */
 .modern-menu {
-    -fx-background-color: #f3f4f6;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 10, 0, 0, 1);
+    -fx-background-color: -fx-secondary-bg;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 5, 0, 0, 1);
 }
 
-.modern-menu .menu {
+.menu, .menu-item {
     -fx-padding: 4 8;
 }
 
-.modern-menu .menu-item {
-    -fx-padding: 8 16;
+.menu-item:hover {
+    -fx-background-color: -fx-hover-bg;
 }
 
-.modern-menu .menu-item .label {
+.menu-item .label {
     -fx-font-size: 13px;
-    -fx-font-family: 'Noto Sans KR';
+    -fx-text-fill: -fx-text-fill;
 }
 
-.modern-menu .menu-item:hover {
-    -fx-background-color: #e5e7eb;
-}
-
-/* 툴바 스타일 */
+/* 툴바 */
 .toolbar {
-    -fx-background-color: #e5e7eb;
+    -fx-background-color: -fx-secondary-bg;
     -fx-padding: 8;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 5, 0, 0, 1);
-    -fx-border-color: #d1d5db;
     -fx-border-width: 0 0 1 0;
+    -fx-border-color: -fx-border-color;
+}
+
+/* 버튼 공통 스타일 */
+.tool-button, .action-button {
+    -fx-background-color: transparent;
+    -fx-cursor: hand;
+    -fx-background-radius: -fx-border-radius;
 }
 
 .tool-button {
-    -fx-background-color: transparent;
     -fx-padding: 6 10;
-    -fx-cursor: hand;
 }
 
 .tool-button:hover {
-    -fx-background-color: #d1d5db;
+    -fx-background-color: -fx-hover-bg;
 }
 
 .tool-button .ikonli-font-icon {
     -fx-icon-size: 16;
-    -fx-icon-color: #374151;
+    -fx-icon-color: -fx-text-fill;
 }
 
-/* 안전 삭제 버튼 스타일 */
-.tool-button.delete-button {
-    -fx-background-color: transparent;
-}
-
+/* 안전 삭제 버튼 */
 .tool-button.delete-button:hover {
     -fx-background-color: #f87171;
 }
@@ -70,203 +93,166 @@
     -fx-icon-color: #dc2626;
 }
 
-/* 구분선 스타일 */
-.vertical-divider {
-    -fx-background-color: #d1d5db;
-    -fx-pref-width: 1px;
-    -fx-pref-height: 24px;
-}
-
-/* 콤보박스 스타일 */
-.combo-box {
-    -fx-background-color: white;
-    -fx-border-color: #d1d5db;
-    -fx-border-radius: 4;
-    -fx-padding: 2;
-    -fx-font-family: 'Noto Sans KR';
-}
-
-.combo-box:hover {
-    -fx-border-color: #9ca3af;
-}
-
-/* 액션 버튼 스타일 */
+/* 액션 버튼 */
 .action-button {
     -fx-padding: 8 16;
-    -fx-background-radius: 4;
-    -fx-cursor: hand;
 }
 
-.action-button .button-label {
+.action-button .button-label, .action-button .ikonli-font-icon {
     -fx-text-fill: white;
-    -fx-font-size: 13px;
-    -fx-font-family: 'Noto Sans KR';
-}
-
-.action-button .ikonli-font-icon {
     -fx-icon-color: white;
+    -fx-font-size: 13px;
     -fx-icon-size: 14;
 }
 
 .encrypt-button {
-    -fx-background-color: #3b82f6;
+    -fx-background-color: -fx-accent-blue;
 }
 
 .encrypt-button:hover {
-    -fx-background-color: #2563eb;
+    -fx-background-color: -fx-accent-blue-hover;
 }
 
 .decrypt-button {
-    -fx-background-color: #10b981;
+    -fx-background-color: -fx-accent-green;
 }
 
 .decrypt-button:hover {
-    -fx-background-color: #059669;
+    -fx-background-color: -fx-accent-green-hover;
 }
 
-/* 상태 컨테이너 스타일 */
+/* 구분선 */
+.vertical-divider {
+    -fx-background-color: -fx-border-color;
+    -fx-pref-width: 1;
+    -fx-pref-height: 24;
+}
+
+/* 콤보박스 */
+.combo-box {
+    -fx-background-color: derive(-fx-background-color, 10%);
+    -fx-border-color: -fx-border-color;
+    -fx-border-radius: -fx-border-radius;
+    -fx-padding: 2;
+}
+
+.combo-box:hover {
+    -fx-border-color: derive(-fx-border-color, 20%);
+}
+
+/* 상태 컨테이너 */
 .status-container {
     -fx-padding: 10;
-    -fx-background-color: white;
-    -fx-background-radius: 4;
-    -fx-border-color: #e5e7eb;
-    -fx-border-radius: 4;
+    -fx-background-color: derive(-fx-background-color, 10%);
+    -fx-background-radius: -fx-border-radius;
+    -fx-border-color: -fx-secondary-bg;
 }
 
 .status-container .label {
-    -fx-text-fill: #374151;
-    -fx-font-family: 'Noto Sans KR';
+    -fx-text-fill: -fx-text-fill;
 }
 
 .status-container .ikonli-font-icon {
-    -fx-icon-color: #374151;
     -fx-icon-size: 14;
+    -fx-icon-color: -fx-text-fill;
 }
 
-/* 파일 테이블 스타일 */
+/* 파일 테이블 */
 .file-table {
-    -fx-background-color: white;
-    -fx-background-radius: 4;
-    -fx-border-color: #e5e7eb;
-    -fx-border-radius: 4;
+    -fx-background-color: derive(-fx-background-color, 10%);
+    -fx-background-radius: -fx-border-radius;
+    -fx-border-color: -fx-secondary-bg;
 }
 
 .file-table .column-header {
-    -fx-background-color: #f9fafb;
+    -fx-background-color: -fx-background-color;
     -fx-padding: 8;
-    -fx-border-color: #e5e7eb;
     -fx-border-width: 0 0 1 0;
+    -fx-border-color: -fx-secondary-bg;
 }
 
 .file-table .column-header .label {
     -fx-font-weight: bold;
-    -fx-text-fill: #374151;
-    -fx-font-family: 'Noto Sans KR';
+    -fx-text-fill: -fx-text-fill;
 }
 
 .file-table .table-row-cell {
-    -fx-background-color: white;
-    -fx-border-color: #e5e7eb;
+    -fx-background-color: derive(-fx-background-color, 10%);
+    -fx-border-color: -fx-secondary-bg;
     -fx-border-width: 0 0 1 0;
 }
 
 .file-table .table-row-cell:hover {
-    -fx-background-color: #f3f4f6;
+    -fx-background-color: -fx-table-row-hover;
 }
 
 .file-table .table-row-cell:selected {
-    -fx-background-color: #3b82f6;
+    -fx-background-color: -fx-accent-blue;
 }
 
-/* 진행 바 스타일 */
-.progress-container {
-    -fx-padding: 10 0;
-}
-
+/* 진행 바 */
 .progress-bar {
     -fx-pref-height: 8;
 }
 
 .progress-bar .bar {
-    -fx-background-color: #3b82f6;
-    -fx-background-radius: 4;
+    -fx-background-color: -fx-accent-blue;
+    -fx-background-radius: -fx-border-radius;
 }
 
 .progress-bar .track {
-    -fx-background-color: #e5e7eb;
-    -fx-background-radius: 4;
+    -fx-background-color: -fx-secondary-bg;
+    -fx-background-radius: -fx-border-radius;
 }
 
-.progress-container .label {
-    -fx-text-fill: #6b7280;
-    -fx-font-size: 12px;
-    -fx-font-family: 'Noto Sans KR';
-}
-
-/* 상태 바 스타일 */
+/* 상태 바 */
 .status-bar {
-    -fx-background-color: white;
-    -fx-border-color: #e5e7eb;
+    -fx-background-color: derive(-fx-background-color, 10%);
+    -fx-border-color: -fx-secondary-bg;
     -fx-border-width: 1 0 0 0;
+    -fx-padding: 5 10;
 }
 
 .status-bar .label {
-    -fx-text-fill: #6b7280;
+    -fx-text-fill: -fx-status-text;
     -fx-font-size: 12px;
-    -fx-font-family: 'Noto Sans KR';
 }
 
 .status-bar #memoryLabel {
-    -fx-text-fill: #374151;
+    -fx-text-fill: -fx-text-fill;
     -fx-font-weight: bold;
 }
 
-/* 다이얼로그 스타일 */
+/* 다이얼로그 */
 .dialog-pane {
-    -fx-background-color: white;
+    -fx-background-color: derive(-fx-background-color, 10%);
 }
 
 .dialog-pane .header-panel {
-    -fx-background-color: #f9fafb;
+    -fx-background-color: -fx-background-color;
     -fx-padding: 16;
 }
 
 .dialog-pane .content {
     -fx-padding: 16;
-    -fx-font-family: 'Noto Sans KR';
 }
 
-/* 텍스트 필드 스타일 */
-.text-field {
-    -fx-background-color: white;
-    -fx-border-color: #d1d5db;
-    -fx-border-radius: 4;
+/* 입력 필드 공통 스타일 */
+.text-field, .password-field {
+    -fx-background-color: derive(-fx-background-color, 10%);
+    -fx-border-color: -fx-border-color;
+    -fx-border-radius: -fx-border-radius;
     -fx-padding: 6;
-    -fx-font-family: 'Noto Sans KR';
 }
 
-.text-field:focused {
-    -fx-border-color: #3b82f6;
+.text-field:focused, .password-field:focused {
+    -fx-border-color: -fx-accent-blue;
 }
 
-/* 비밀번호 필드 스타일 */
-.password-field {
-    -fx-background-color: white;
-    -fx-border-color: #d1d5db;
-    -fx-border-radius: 4;
-    -fx-padding: 6;
-    -fx-font-family: 'Noto Sans KR';
-}
-
-.password-field:focused {
-    -fx-border-color: #3b82f6;
-}
-
-/* 툴팁 스타일 */
+/* 툴팁 */
 .tooltip {
     -fx-background-color: #374151;
     -fx-text-fill: white;
     -fx-font-size: 12px;
     -fx-padding: 6 10;
-    -fx-font-family: 'Noto Sans KR';
 }
