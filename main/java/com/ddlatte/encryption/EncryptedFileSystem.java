@@ -1,91 +1,65 @@
+```java
 package com.ddlatte.encryption;
 
-import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.*;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.*;
-import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.security.KeyStore;
-import java.security.SecureRandom;
+import java.nio.ByteBuffer;
+import java.security.*;
 import java.security.spec.KeySpec;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.logging.Logger;
+import java.util.logging.Level;
 
 /**
- * Handles encryption and decryption operations with enhanced KeyStore file handling and error reporting.
+ * Handles file encryption and decryption with parallel processing.
  */
 public class EncryptedFileSystem {
     private static final Logger LOGGER = Logger.getLogger(EncryptedFileSystem.class.getName());
     private static final String ALGORITHM = "AES";
-    private static final String TRANSFORMATION = "AES/CTR/NoPadding";
+    private static final String TRANSFORMATION = "AES/CBC/PKCS5Padding";
     private static final int KEY_LENGTH = 256;
-    private static final int IV_LENGTH = 16;
     private static final int PBKDF2_ITERATIONS = 65536;
-    private static final int MAX_BUFFER_SIZE = 1024 * 1024 * 1024; // 1GB
-    private static final String KEYSTORE_TYPE = "JCEKS";
+    private static final int SALT_LENGTH = 16;
+    private static final int IV_LENGTH = 16;
+    private static final int MAX_BUFFER_SIZE = 1024 * 1024 * 128; // 128MB
 
     private SecretKey secretKey;
 
-    /**
-     * Generates and stores a key in a KeyStore with validated file path and password.
-     */
-    public void generateKey(String keyFilePath, String password) throws Exception {
-        File keyFile = new File(keyFilePath);
-        File parentDir = keyFile.getParentFile();
-        if (parentDir == null || !parentDir.exists() || !parentDir.canWrite()) {
-            throw new IOException("키 파일 저장 경로에 쓰기 권한이 없거나 유효하지 않습니다: " + keyFilePath);
-        }
-
-        SecureRandom random = new SecureRandom();
-        byte[] salt = new byte[16];
-        random.nextBytes(salt);
-
+    public void generateKey(String keyPath, String password) throws Exception {
+        byte[] salt = generateSalt();
         SecretKey key = deriveKey(password, salt);
-        KeyStore keyStore = KeyStore.getInstance(KEYSTORE_TYPE);
-        keyStore.load(null, password.toCharArray());
-
-        KeyStore.SecretKeyEntry keyEntry = new KeyStore.SecretKeyEntry(key);
-        KeyStore.ProtectionParameter protParam = new KeyStore.PasswordProtection(password.toCharArray());
-        keyStore.setEntry("encryptionKey", keyEntry, protParam);
-
-        try (FileOutputStream fos = new FileOutputStream(keyFile)) {
-            keyStore.store(fos, password.toCharArray());
-            LOGGER.info("Key generated and stored: " + keyFilePath);
+        try (FileOutputStream fos = new FileOutputStream(keyPath)) {
+            fos.write(salt);
+            fos.write(key.getEncoded());
         }
+        secretKey = key;
+        LOGGER.info("Key generated and saved to: " + keyPath);
     }
 
-    /**
-     * Loads a key from a KeyStore with detailed error handling.
-     */
-    public void loadKey(String keyFilePath, String password) throws Exception {
-        try (FileInputStream fis = new FileInputStream(keyFilePath)) {
-            KeyStore keyStore = KeyStore.getInstance(KEYSTORE_TYPE);
-            try {
-                keyStore.load(fis, password.toCharArray());
-            } catch (IOException e) {
-                throw new IllegalArgumentException("키 파일이 손상되었거나 잘못된 형식입니다: " + keyFilePath, e);
-            } catch (Exception e) {
-                throw new IllegalArgumentException("비밀번호가 잘못되었습니다.", e);
+    public void loadKey(String keyPath, String password) throws Exception {
+        byte[] salt = new byte[SALT_LENGTH];
+        byte[] keyBytes = new byte[KEY_LENGTH / 8];
+        try (FileInputStream fis = new FileInputStream(keyPath)) {
+            int saltRead = fis.read(salt);
+            int keyRead = fis.read(keyBytes);
+            if (saltRead != SALT_LENGTH || keyRead != KEY_LENGTH / 8) {
+                throw new IOException("Invalid key file format");
             }
-
-            SecretKey key = (SecretKey) keyStore.getKey("encryptionKey", password.toCharArray());
-            if (key == null) {
-                throw new IllegalArgumentException("키 파일에 유효한 키가 없습니다: " + keyFilePath);
-            }
-            secretKey = key;
-            LOGGER.info("Key loaded successfully from: " + keyFilePath);
-        } catch (FileNotFoundException e) {
-            throw new IllegalArgumentException("키 파일을 찾을 수 없습니다: " + keyFilePath, e);
         }
+        SecretKey key = deriveKey(password, salt);
+        if (!Arrays.equals(key.getEncoded(), keyBytes)) {
+            throw new InvalidKeyException("Incorrect password or corrupted key file");
+        }
+        secretKey = key;
+        LOGGER.info("Key loaded from: " + keyPath);
     }
 
-    /**
-     * Encrypts a file with dynamic buffer sizing up to 1GB.
-     */
     public String encryptFile(String inputPath, int chunkSize) throws Exception {
-        if (secretKey == null) throw new IllegalStateException("키가 로드되지 않았습니다.");
+        if (secretKey == null) throw new IllegalStateException("Key not loaded");
         File inputFile = new File(inputPath);
         String outputPath = inputPath + ".lock";
         Cipher cipher = Cipher.getInstance(TRANSFORMATION);
@@ -95,22 +69,46 @@ public class EncryptedFileSystem {
         long startTime = System.nanoTime();
         long usedMemoryBefore = (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024);
 
+        ExecutorService executor = Executors.newFixedThreadPool(Math.max(2, Runtime.getRuntime().availableProcessors() / 2));
+        List<Future<byte[]>> futures = new ArrayList<>();
+
         try (FileChannel inChannel = new FileInputStream(inputFile).getChannel();
              FileChannel outChannel = new FileOutputStream(outputPath).getChannel()) {
             byte[] iv = cipher.getIV();
             outChannel.write(ByteBuffer.wrap(iv));
 
-            ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
-            while (inChannel.read(buffer) > 0) {
-                buffer.flip();
-                byte[] input = new byte[buffer.remaining()];
-                buffer.get(input);
-                byte[] output = cipher.update(input);
-                outChannel.write(ByteBuffer.wrap(output));
-                buffer.clear();
+            long fileSize = inputFile.length();
+            long offset = 0;
+            while (offset < fileSize) {
+                long currentOffset = offset;
+                int currentBufferSize = (int) Math.min(bufferSize, fileSize - offset);
+                Future<byte[]> future = executor.submit(() -> {
+                    ByteBuffer buffer = ByteBuffer.allocate(currentBufferSize);
+                    synchronized (inChannel) {
+                        inChannel.position(currentOffset);
+                        inChannel.read(buffer);
+                    }
+                    buffer.flip();
+                    byte[] input = new byte[buffer.remaining()];
+                    buffer.get(input);
+                    return cipher.update(input);
+                });
+                futures.add(future);
+                offset += currentBufferSize;
             }
+
+            for (Future<byte[]> future : futures) {
+                outChannel.write(ByteBuffer.wrap(future.get()));
+            }
+
             byte[] finalOutput = cipher.doFinal();
             outChannel.write(ByteBuffer.wrap(finalOutput));
+        } catch (Exception e) {
+            new File(outputPath).delete();
+            throw e;
+        } finally {
+            executor.shutdown();
+            executor.awaitTermination(10, TimeUnit.SECONDS);
         }
 
         long usedMemoryAfter = (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024);
@@ -119,33 +117,56 @@ public class EncryptedFileSystem {
         return outputPath;
     }
 
-    /**
-     * Decrypts a file with dynamic buffer sizing up to 1GB.
-     */
     public String decryptFile(String inputPath, String outputPath) throws Exception {
-        if (secretKey == null) throw new IllegalStateException("키가 로드되지 않았습니다.");
+        if (secretKey == null) throw new IllegalStateException("Key not loaded");
+        File inputFile = new File(inputPath);
         Cipher cipher = Cipher.getInstance(TRANSFORMATION);
 
+        int bufferSize = Math.min(1024 * 1024 * 1024, MAX_BUFFER_SIZE); // 1GB default
         long startTime = System.nanoTime();
         long usedMemoryBefore = (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024);
 
-        try (FileChannel inChannel = new FileInputStream(inputPath).getChannel();
+        ExecutorService executor = Executors.newFixedThreadPool(Math.max(2, Runtime.getRuntime().availableProcessors() / 2));
+        List<Future<byte[]>> futures = new ArrayList<>();
+
+        try (FileChannel inChannel = new FileInputStream(inputFile).getChannel();
              FileChannel outChannel = new FileOutputStream(outputPath).getChannel()) {
             ByteBuffer ivBuffer = ByteBuffer.allocate(IV_LENGTH);
             inChannel.read(ivBuffer);
-            cipher.init(Cipher.DECRYPT_MODE, secretKey, new IvParameterSpec(ivBuffer.array()));
+            cipher.init(Cipher.DECRYPT_MODE, secretKey, new javax.crypto.spec.IvParameterSpec(ivBuffer.array()));
 
-            ByteBuffer buffer = ByteBuffer.allocate(MAX_BUFFER_SIZE);
-            while (inChannel.read(buffer) > 0) {
-                buffer.flip();
-                byte[] input = new byte[buffer.remaining()];
-                buffer.get(input);
-                byte[] output = cipher.update(input);
-                outChannel.write(ByteBuffer.wrap(output));
-                buffer.clear();
+            long fileSize = inputFile.length() - IV_LENGTH;
+            long offset = IV_LENGTH;
+            while (offset < fileSize) {
+                long currentOffset = offset;
+                int currentBufferSize = (int) Math.min(bufferSize, fileSize - offset);
+                Future<byte[]> future = executor.submit(() -> {
+                    ByteBuffer buffer = ByteBuffer.allocate(currentBufferSize);
+                    synchronized (inChannel) {
+                        inChannel.position(currentOffset);
+                        inChannel.read(buffer);
+                    }
+                    buffer.flip();
+                    byte[] input = new byte[buffer.remaining()];
+                    buffer.get(input);
+                    return cipher.update(input);
+                });
+                futures.add(future);
+                offset += currentBufferSize;
             }
+
+            for (Future<byte[]> future : futures) {
+                outChannel.write(ByteBuffer.wrap(future.get()));
+            }
+
             byte[] finalOutput = cipher.doFinal();
             outChannel.write(ByteBuffer.wrap(finalOutput));
+        } catch (Exception e) {
+            new File(outputPath).delete();
+            throw e;
+        } finally {
+            executor.shutdown();
+            executor.awaitTermination(10, TimeUnit.SECONDS);
         }
 
         long usedMemoryAfter = (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024);
@@ -154,33 +175,44 @@ public class EncryptedFileSystem {
         return outputPath;
     }
 
-    /**
-     * Securely deletes a file with configurable overwrite passes.
-     */
+    public void deleteEncryptedFile(String filePath) throws IOException {
+        File file = new File(filePath);
+        if (file.exists()) {
+            if (!file.delete()) {
+                throw new IOException("Failed to delete encrypted file: " + filePath);
+            }
+            LOGGER.info("Deleted encrypted file: " + filePath);
+        }
+    }
+
     public void secureDelete(String filePath) throws IOException {
         File file = new File(filePath);
         if (!file.exists()) return;
 
-        try (RandomAccessFile raf = new RandomAccessFile(file, "rws")) {
-            byte[] overwrite = new byte[1024];
-            new SecureRandom().nextBytes(overwrite);
+        try (FileChannel channel = new FileOutputStream(file, true).getChannel()) {
             long length = file.length();
-            for (long i = 0; i < length; i += overwrite.length) {
-                raf.write(overwrite, 0, (int) Math.min(overwrite.length, length - i));
+            ByteBuffer buffer = ByteBuffer.allocate(8192);
+            byte[] zeros = new byte[8192];
+            long position = 0;
+            while (position < length) {
+                int toWrite = (int) Math.min(8192, length - position);
+                buffer.clear();
+                buffer.put(zeros, 0, toWrite);
+                buffer.flip();
+                channel.write(buffer);
+                position += toWrite;
             }
         }
-
         if (!file.delete()) {
-            throw new IOException("파일 삭제 실패: " + filePath);
+            throw new IOException("Failed to securely delete file: " + filePath);
         }
-        LOGGER.info("Securely deleted: " + filePath);
+        LOGGER.info("Securely deleted file: " + filePath);
     }
 
-    /**
-     * Deletes an encrypted file securely.
-     */
-    public void deleteEncryptedFile(String filePath) throws IOException {
-        secureDelete(filePath);
+    private byte[] generateSalt() {
+        byte[] salt = new byte[SALT_LENGTH];
+        new SecureRandom().nextBytes(salt);
+        return salt;
     }
 
     private SecretKey deriveKey(String password, byte[] salt) throws Exception {
@@ -190,3 +222,4 @@ public class EncryptedFileSystem {
         return new SecretKeySpec(keyBytes, ALGORITHM);
     }
 }
+```
