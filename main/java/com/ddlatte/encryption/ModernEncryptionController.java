@@ -304,9 +304,10 @@ public class ModernEncryptionController {
         dialog.setHeaderText("PASSCODE 라이브러리");
 
         TextArea textArea = new TextArea(
-                "- JavaFX: 사용자 인터페이스\n" +
-                        "- Ikonli: 아이콘\n" +
-                        "- JCA: 암호화/복호화"
+            "- JavaFX: 사용자 인터페이스 (Apache License 2.0)\n" +
+            "- Ikonli: 아이콘 (Apache License 2.0)\n" +
+            "- JCA: 암호화/복호화 (Oracle Binary Code License)\n" +
+            "- Noto Sans KR: 폰트 (SIL Open Font License 1.1)"
         );
         textArea.setEditable(false);
         dialog.getDialogPane().setContent(textArea);
