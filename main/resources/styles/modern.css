@@ -1,3 +1,19 @@
+```css
+/* Noto Sans KR 폰트를 Google Fonts에서 로드 */
+@font-face {
+    font-family: 'Noto Sans KR';
+    src: url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400&display=swap');
+    font-weight: 400;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Noto Sans KR';
+    src: url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@700&display=swap');
+    font-weight: 700;
+    font-style: normal;
+}
+
 /* 글로벌 변수 정의 */
 :root {
     /* 라이트 모드 기본값 */
@@ -313,3 +329,4 @@
     -fx-padding: 6 10;
     -fx-background-radius: -fx-border-radius;
 }
+```
