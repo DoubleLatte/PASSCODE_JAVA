@@ -11,15 +11,11 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
+import java.util.concurrent.*;
 import java.util.ArrayList;
 
 /**
- * Manages file system operations with optimized progress tracking for large chunk sizes.
+ * Manages file system operations with optimized thread pooling and backup file handling.
  */
 public class FileSystemManager {
     private final EncryptedFileSystem efs;
@@ -86,24 +82,46 @@ public class FileSystemManager {
         }
     }
 
+    private File createBackupFile(File file) throws IOException {
+        File tempDir = new File(System.getProperty("java.io.tmpdir"), "encryption_backups");
+        tempDir.mkdirs();
+        File backupFile = new File(tempDir, file.getName() + ".backup");
+        Files.copy(file.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        return backupFile;
+    }
+
+    private void cleanupBackupFiles(File... backupFiles) {
+        for (File backup : backupFiles) {
+            if (backup.exists()) {
+                try {
+                    Files.delete(backup.toPath());
+                } catch (IOException e) {
+                    // 로깅만, 예외 무시
+                }
+            }
+        }
+    }
+
     public Task<Void> createEncryptionTask(ObservableList<FileItem> selectedItems, String chunkSizeStr,
                                           ObservableList<FileItem> fileItems, TableView<FileItem> fileTable) {
         return new Task<>() {
             @Override
             protected Void call() throws Exception {
-                ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+                ThreadPoolExecutor executor = new ThreadPoolExecutor(
+                    2, Math.max(4, Runtime.getRuntime().availableProcessors()),
+                    60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>()
+                );
                 List<Future<?>> futures = new ArrayList<>();
                 int chunkSize = Utils.parseChunkSize(chunkSizeStr);
                 long totalSize = selectedItems.stream().map(item -> new File(currentDirectory, item.getName()).length()).reduce(0L, Long::sum);
-                long[] processedSize = {0}; // 스레드 안전성을 위해 배열 사용
+                long[] processedSize = {0};
 
                 if (selectedItems.size() == 1 && !new File(currentDirectory, selectedItems.get(0).getName()).isDirectory()) {
                     FileItem item = selectedItems.get(0);
                     File file = new File(currentDirectory, item.getName());
-                    File backupFile = new File(file.getPath() + ".backup");
+                    File backupFile = createBackupFile(file);
                     File tempDecrypted = new File(currentDirectory, "temp_" + item.getName());
 
-                    Files.copy(file.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
                     try {
                         long fileSize = file.length();
                         Future<?> future = executor.submit(() -> {
@@ -152,14 +170,14 @@ public class FileSystemManager {
                         if (tempDecrypted.exists()) {
                             efs.secureDelete(tempDecrypted.getPath());
                         }
+                        cleanupBackupFiles(backupFile);
                     }
                 } else {
                     File zipFile = new File(currentDirectory, "encrypted_bundle.zip");
                     File tempDecryptedZip = new File(currentDirectory, "temp_encrypted_bundle.zip");
-                    File backupZip = new File(zipFile.getPath() + ".backup");
+                    File backupZip = createBackupFile(zipFile);
 
                     Utils.zipFiles(selectedItems, zipFile, currentDirectory);
-                    Files.copy(zipFile.toPath(), backupZip.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
                     Future<?> future = executor.submit(() -> {
                         try {
@@ -202,12 +220,14 @@ public class FileSystemManager {
                         }
                     });
                     futures.add(future);
+                    cleanupBackupFiles(backupZip, tempDecryptedZip);
                 }
 
                 for (Future<?> future : futures) {
                     future.get();
                 }
-                executor.shutdownNow();
+                executor.shutdown();
+                executor.awaitTermination(10, TimeUnit.SECONDS);
                 updateProgress(1, 1);
                 updateMessage("암호화 완료");
                 return null;
@@ -220,7 +240,10 @@ public class FileSystemManager {
         return new Task<>() {
             @Override
             protected Void call() throws Exception {
-                ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+                ThreadPoolExecutor executor = new ThreadPoolExecutor(
+                    2, Math.max(4, Runtime.getRuntime().availableProcessors()),
+                    60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>()
+                );
                 List<Future<?>> futures = new ArrayList<>();
                 int total = encryptedFiles.size();
                 long totalSize = encryptedFiles.stream().map(item -> new File(currentDirectory, item.getName()).length()).reduce(0L, Long::sum);
@@ -265,7 +288,8 @@ public class FileSystemManager {
                 for (Future<?> future : futures) {
                     future.get();
                 }
-                executor.shutdownNow();
+                executor.shutdown();
+                executor.awaitTermination(10, TimeUnit.SECONDS);
                 updateProgress(1, 1);
                 updateMessage("복호화 완료");
                 return null;
@@ -277,7 +301,7 @@ public class FileSystemManager {
         memoryMonitorExecutor = Executors.newSingleThreadScheduledExecutor();
         memoryMonitorExecutor.scheduleAtFixedRate(() -> {
             Runtime runtime = Runtime.getRuntime();
-            long usedMemory = (runtime.totalMemory() - runtime.freeMemory()) / (1024 *  W1024);
+            long usedMemory = (runtime.totalMemory() - runtime.freeMemory()) / (1024 * 1024);
             long maxMemory = runtime.maxMemory() / (1024 * 1024);
             String memoryInfo = String.format("사용 %d MB / 최대 %d MB", usedMemory, maxMemory);
             Platform.runLater(() -> memoryLabel.setText(memoryInfo));

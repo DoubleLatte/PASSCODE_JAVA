@@ -7,54 +7,56 @@ import javafx.beans.property.StringProperty;
 import java.io.File;
 
 /**
- * Model class for file items with dynamic progress tracking.
+ * Represents a file item in the UI with cached size formatting.
  */
 public class FileItem {
-    private final StringProperty name;
-    private final StringProperty size;
-    private final StringProperty status;
-    private final DoubleProperty progress;
+    private final File file;
+    private final StringProperty nameProperty = new SimpleStringProperty();
+    private final StringProperty typeProperty = new SimpleStringProperty();
+    private final StringProperty sizeProperty = new SimpleStringProperty();
+    private final StringProperty statusProperty = new SimpleStringProperty();
+    private final DoubleProperty progressProperty = new SimpleDoubleProperty();
+    private String cachedSize;
 
     public FileItem(File file) {
-        this.name = new SimpleStringProperty(file.getName());
-        this.size = new SimpleStringProperty(Utils.formatFileSize(file.length()));
-        this.status = new SimpleStringProperty(file.getName().endsWith(".lock") ? "암호화됨" : "");
-        this.progress = new SimpleDoubleProperty(0.0);
-    }
-
-    public StringProperty nameProperty() {
-        return name;
-    }
-
-    public StringProperty typeProperty() {
-        return new SimpleStringProperty(getFileType(new File(name.get())));
-    }
-
-    public StringProperty sizeProperty() {
-        return size;
-    }
-
-    public StringProperty statusProperty() {
-        return status;
-    }
-
-    public DoubleProperty progressProperty() {
-        return progress;
+        this.file = file;
+        this.nameProperty.set(file.getName());
+        this.typeProperty.set(file.isDirectory() ? "폴더" : Utils.getFileExtension(file));
+        this.cachedSize = Utils.formatFileSize(file.length());
+        this.sizeProperty.set(cachedSize);
+        this.statusProperty.set("대기 중");
+        this.progressProperty.set(0);
     }
 
     public String getName() {
-        return name.get();
+        return nameProperty.get();
     }
 
-    public void setStatus(String status) {
-        this.status.set(status);
+    public StringProperty nameProperty() {
+        return nameProperty;
+    }
+
+    public StringProperty typeProperty() {
+        return typeProperty;
+    }
+
+    public StringProperty sizeProperty() {
+        return sizeProperty;
+    }
+
+    public StringProperty statusProperty() {
+        return statusProperty;
+    }
+
+    public DoubleProperty progressProperty() {
+        return progressProperty;
     }
 
     public void setProgress(double progress) {
-        this.progress.set(progress);
+        progressProperty.set(progress);
     }
 
-    private String getFileType(File file) {
-        return file.isDirectory() ? "폴더" : Utils.getFileExtension(file);
+    public void setStatus(String status) {
+        statusProperty.set(status);
     }
 }

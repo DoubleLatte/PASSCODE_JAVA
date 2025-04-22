@@ -18,7 +18,7 @@ import java.io.File;
 import java.util.Optional;
 
 /**
- * Main controller for the encryption application UI with user-selectable chunk sizes.
+ * Main controller for the encryption application UI with optimized table loading and task cancellation.
  */
 public class ModernEncryptionController {
     @FXML private TableView<FileItem> fileTable;
@@ -107,7 +107,7 @@ public class ModernEncryptionController {
 
     private void setupChunkSizeCombo() {
         chunkSizeCombo.getItems().addAll("1 MB", "16 MB", "32 MB", "64 MB", "128 MB", "256 MB", "512 MB", "1 GB");
-        chunkSizeCombo.setValue("64 MB"); 
+        chunkSizeCombo.setValue("1 GB");
         chunkSizeCombo.valueProperty().addListener((obs, oldValue, newValue) -> saveSettings());
     }
 
@@ -248,6 +248,7 @@ public class ModernEncryptionController {
     private void cancelTask() {
         if (currentTask != null && currentTask.isRunning()) {
             if (currentTask.cancel(true)) {
+                fileSystemManager.shutdown(); // 스레드 풀 정리
                 Platform.runLater(() -> {
                     progressLabel.setText("작업이 취소되었습니다.");
                     progressBar.setProgress(0);
@@ -314,7 +315,28 @@ public class ModernEncryptionController {
     }
 
     private void updateFileList() {
-        fileSystemManager.updateFileList(fileItems, itemCountLabel);
+        Task<ObservableList<FileItem>> loadTask = new Task<>() {
+            @Override
+            protected ObservableList<FileItem> call() {
+                ObservableList<FileItem> newItems = FXCollections.observableArrayList();
+                if (fileSystemManager.getCurrentDirectory() != null) {
+                    File[] files = fileSystemManager.getCurrentDirectory().listFiles();
+                    if (files != null) {
+                        for (File file : files) {
+                            newItems.add(new FileItem(file));
+                        }
+                    }
+                }
+                return newItems;
+            }
+        };
+        loadTask.setOnSucceeded(e -> {
+            fileItems.setAll(loadTask.getValue());
+            itemCountLabel.setText("항목 수: " + fileItems.size() + "개");
+            fileTable.refresh();
+        });
+        loadTask.setOnFailed(e -> showAlert(Alert.AlertType.ERROR, "목록 로드 실패", "파일 목록을 로드하지 못했습니다."));
+        new Thread(loadTask).start();
     }
 
     private void startTask() {

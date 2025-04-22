@@ -2,22 +2,25 @@ package com.ddlatte.encryption;
 
 import javafx.collections.ObservableList;
 import java.io.*;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.security.MessageDigest;
 import java.util.Base64;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 /**
- * Utility methods for file operations and data processing.
+ * Utility methods for file operations with optimized ZIP and hash performance.
  */
 public class Utils {
     public static String calculateFileHash(File file) throws Exception {
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        try (FileInputStream fis = new FileInputStream(file)) {
-            byte[] buffer = new byte[8192];
-            int bytesRead;
-            while ((bytesRead = fis.read(buffer)) != -1) {
-                digest.update(buffer, 0, bytesRead);
+        try (FileChannel inChannel = new FileInputStream(file).getChannel()) {
+            ByteBuffer buffer = ByteBuffer.allocate(65536); // 64KB
+            while (inChannel.read(buffer) > 0) {
+                buffer.flip();
+                digest.update(buffer);
+                buffer.clear();
             }
         }
         return Base64.getEncoder().encodeToString(digest.digest());
@@ -50,11 +53,12 @@ public class Utils {
             }
         } else {
             zos.putNextEntry(new ZipEntry(zipEntryName));
-            try (FileInputStream fis = new FileInputStream(file)) {
-                byte[] buffer = new byte[1024];
-                int len;
-                while ((len = fis.read(buffer)) > 0) {
-                    zos.write(buffer, 0, len);
+            try (FileChannel inChannel = new FileInputStream(file).getChannel()) {
+                ByteBuffer buffer = ByteBuffer.allocate(65536); // 64KB
+                while (inChannel.read(buffer) > 0) {
+                    buffer.flip();
+                    zos.write(buffer.array(), 0, buffer.limit());
+                    buffer.clear();
                 }
             }
             zos.closeEntry();
@@ -68,7 +72,7 @@ public class Utils {
             if (parts[1].equals("GB")) size *= 1024;
             return size * 1024 * 1024;
         } catch (Exception e) {
-            return 32 * 1024 * 1024; // 기본값 32MB
+            return 1024 * 1024 * 1024; // 기본값 1GB
         }
     }
 

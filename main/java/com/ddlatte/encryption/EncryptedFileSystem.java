@@ -14,7 +14,7 @@ import java.security.spec.KeySpec;
 import java.util.logging.Logger;
 
 /**
- * Handles encryption and decryption operations with user-provided KeyStore passwords.
+ * Handles encryption and decryption operations with enhanced KeyStore file handling and error reporting.
  */
 public class EncryptedFileSystem {
     private static final Logger LOGGER = Logger.getLogger(EncryptedFileSystem.class.getName());
@@ -29,42 +29,56 @@ public class EncryptedFileSystem {
     private SecretKey secretKey;
 
     /**
-     * Generates and stores a key in a KeyStore using the provided password.
+     * Generates and stores a key in a KeyStore with validated file path and password.
      */
     public void generateKey(String keyFilePath, String password) throws Exception {
+        File keyFile = new File(keyFilePath);
+        File parentDir = keyFile.getParentFile();
+        if (parentDir == null || !parentDir.exists() || !parentDir.canWrite()) {
+            throw new IOException("키 파일 저장 경로에 쓰기 권한이 없거나 유효하지 않습니다: " + keyFilePath);
+        }
+
         SecureRandom random = new SecureRandom();
         byte[] salt = new byte[16];
         random.nextBytes(salt);
 
         SecretKey key = deriveKey(password, salt);
         KeyStore keyStore = KeyStore.getInstance(KEYSTORE_TYPE);
-        keyStore.load(null, password.toCharArray()); // 사용자 비밀번호 사용
+        keyStore.load(null, password.toCharArray());
 
         KeyStore.SecretKeyEntry keyEntry = new KeyStore.SecretKeyEntry(key);
         KeyStore.ProtectionParameter protParam = new KeyStore.PasswordProtection(password.toCharArray());
         keyStore.setEntry("encryptionKey", keyEntry, protParam);
 
-        try (FileOutputStream fos = new FileOutputStream(keyFilePath)) {
-            keyStore.store(fos, password.toCharArray()); // 사용자 비밀번호 사용
+        try (FileOutputStream fos = new FileOutputStream(keyFile)) {
+            keyStore.store(fos, password.toCharArray());
             LOGGER.info("Key generated and stored: " + keyFilePath);
         }
     }
 
     /**
-     * Loads a key from a KeyStore using the provided password.
+     * Loads a key from a KeyStore with detailed error handling.
      */
     public void loadKey(String keyFilePath, String password) throws Exception {
-        KeyStore keyStore = KeyStore.getInstance(KEYSTORE_TYPE);
         try (FileInputStream fis = new FileInputStream(keyFilePath)) {
-            keyStore.load(fis, password.toCharArray()); // 사용자 비밀번호 사용
-        }
+            KeyStore keyStore = KeyStore.getInstance(KEYSTORE_TYPE);
+            try {
+                keyStore.load(fis, password.toCharArray());
+            } catch (IOException e) {
+                throw new IllegalArgumentException("키 파일이 손상되었거나 잘못된 형식입니다: " + keyFilePath, e);
+            } catch (Exception e) {
+                throw new IllegalArgumentException("비밀번호가 잘못되었습니다.", e);
+            }
 
-        SecretKey key = (SecretKey) keyStore.getKey("encryptionKey", password.toCharArray());
-        if (key == null) {
-            throw new IllegalArgumentException("잘못된 비밀번호 또는 키 파일입니다.");
+            SecretKey key = (SecretKey) keyStore.getKey("encryptionKey", password.toCharArray());
+            if (key == null) {
+                throw new IllegalArgumentException("키 파일에 유효한 키가 없습니다: " + keyFilePath);
+            }
+            secretKey = key;
+            LOGGER.info("Key loaded successfully from: " + keyFilePath);
+        } catch (FileNotFoundException e) {
+            throw new IllegalArgumentException("키 파일을 찾을 수 없습니다: " + keyFilePath, e);
         }
-        secretKey = key;
-        LOGGER.info("Key loaded successfully from: " + keyFilePath);
     }
 
     /**
