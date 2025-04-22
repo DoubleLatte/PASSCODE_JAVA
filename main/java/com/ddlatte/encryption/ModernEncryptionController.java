@@ -107,7 +107,7 @@ public class ModernEncryptionController {
 
     private void setupChunkSizeCombo() {
         chunkSizeCombo.getItems().addAll("1 MB", "16 MB", "32 MB", "64 MB", "128 MB", "256 MB", "512 MB", "1 GB");
-        chunkSizeCombo.setValue("1 GB"); // 기본값 1GB
+        chunkSizeCombo.setValue("64 MB"); 
         chunkSizeCombo.valueProperty().addListener((obs, oldValue, newValue) -> saveSettings());
     }
 
