@@ -1,4 +1,4 @@
-# Passcode
+# Passcode 3.0
 
 ![Java](https://img.shields.io/badge/Java-17%2B-red)
 ![JavaFX](https://img.shields.io/badge/JavaFX-UI-blue)
