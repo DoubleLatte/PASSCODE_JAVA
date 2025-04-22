@@ -14,7 +14,7 @@ import java.security.spec.KeySpec;
 import java.util.logging.Logger;
 
 /**
- * Handles encryption and decryption operations with user-selectable chunk sizes up to 1GB.
+ * Handles encryption and decryption operations with user-provided KeyStore passwords.
  */
 public class EncryptedFileSystem {
     private static final Logger LOGGER = Logger.getLogger(EncryptedFileSystem.class.getName());
@@ -25,12 +25,11 @@ public class EncryptedFileSystem {
     private static final int PBKDF2_ITERATIONS = 65536;
     private static final int MAX_BUFFER_SIZE = 1024 * 1024 * 1024; // 1GB
     private static final String KEYSTORE_TYPE = "JCEKS";
-    private static final char[] KEYSTORE_PASSWORD = "keystore-pass".toCharArray(); // 실제로는 동적 생성 필요
 
     private SecretKey secretKey;
 
     /**
-     * Generates and stores a key in a KeyStore.
+     * Generates and stores a key in a KeyStore using the provided password.
      */
     public void generateKey(String keyFilePath, String password) throws Exception {
         SecureRandom random = new SecureRandom();
@@ -39,25 +38,25 @@ public class EncryptedFileSystem {
 
         SecretKey key = deriveKey(password, salt);
         KeyStore keyStore = KeyStore.getInstance(KEYSTORE_TYPE);
-        keyStore.load(null, KEYSTORE_PASSWORD);
+        keyStore.load(null, password.toCharArray()); // 사용자 비밀번호 사용
 
         KeyStore.SecretKeyEntry keyEntry = new KeyStore.SecretKeyEntry(key);
         KeyStore.ProtectionParameter protParam = new KeyStore.PasswordProtection(password.toCharArray());
         keyStore.setEntry("encryptionKey", keyEntry, protParam);
 
         try (FileOutputStream fos = new FileOutputStream(keyFilePath)) {
-            keyStore.store(fos, KEYSTORE_PASSWORD);
+            keyStore.store(fos, password.toCharArray()); // 사용자 비밀번호 사용
             LOGGER.info("Key generated and stored: " + keyFilePath);
         }
     }
 
     /**
-     * Loads a key from a KeyStore.
+     * Loads a key from a KeyStore using the provided password.
      */
     public void loadKey(String keyFilePath, String password) throws Exception {
         KeyStore keyStore = KeyStore.getInstance(KEYSTORE_TYPE);
         try (FileInputStream fis = new FileInputStream(keyFilePath)) {
-            keyStore.load(fis, KEYSTORE_PASSWORD);
+            keyStore.load(fis, password.toCharArray()); // 사용자 비밀번호 사용
         }
 
         SecretKey key = (SecretKey) keyStore.getKey("encryptionKey", password.toCharArray());
