@@ -15,7 +15,7 @@ import java.util.prefs.Preferences;
 public class SettingsManager {
     private static final Logger LOGGER = Logger.getLogger(SettingsManager.class.getName());
     private static final String PREF_NODE = "/com/ddlatte/encryption";
-    private static final String DEFAULT_CHUNK_SIZE = "1 GB";
+    private static final String DEFAULT_CHUNK_SIZE = "64 MB";
     private static final String DEFAULT_DIRECTORY = System.getProperty("user.home");
     private static final String DEFAULT_KEY_PATH = System.getProperty("user.home");
     private static final String DEFAULT_THEME = "light";
