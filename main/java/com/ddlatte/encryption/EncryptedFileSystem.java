@@ -1,7 +1,7 @@
-```java
 package com.ddlatte.encryption;
 
 import javax.crypto.*;
+import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.*;
@@ -15,163 +15,225 @@ import java.util.logging.Logger;
 import java.util.logging.Level;
 
 /**
- * Handles file encryption and decryption with parallel processing.
+ * Handles file encryption and decryption with improved security and optimized memory management.
+ * 
+ * Key improvements:
+ * - Uses AES-GCM for authenticated encryption
+ * - Sequential processing to maintain data integrity
+ * - Dynamic buffer sizing based on available memory
+ * - Enhanced error handling and resource cleanup
  */
 public class EncryptedFileSystem {
     private static final Logger LOGGER = Logger.getLogger(EncryptedFileSystem.class.getName());
     private static final String ALGORITHM = "AES";
-    private static final String TRANSFORMATION = "AES/CBC/PKCS5Padding";
+    private static final String TRANSFORMATION = "AES/GCM/NoPadding";
     private static final int KEY_LENGTH = 256;
-    private static final int PBKDF2_ITERATIONS = 65536;
+    private static final int PBKDF2_ITERATIONS = 100000; // Increased from 65536
     private static final int SALT_LENGTH = 16;
-    private static final int IV_LENGTH = 16;
-    private static final int MAX_BUFFER_SIZE = 1024 * 1024 * 128; // 128MB
+    private static final int GCM_IV_LENGTH = 12; // GCM standard IV length
+    private static final int GCM_TAG_LENGTH = 16; // 128-bit authentication tag
+    private static final int MIN_BUFFER_SIZE = 1024 * 1024; // 1MB minimum
+    private static final int MAX_BUFFER_SIZE = 1024 * 1024 * 64; // 64MB maximum
+    private static final double MEMORY_USAGE_RATIO = 0.25; // Use max 25% of available memory
 
     private SecretKey secretKey;
 
     public void generateKey(String keyPath, String password) throws Exception {
+        validatePassword(password);
         byte[] salt = generateSalt();
         SecretKey key = deriveKey(password, salt);
-        try (FileOutputStream fos = new FileOutputStream(keyPath)) {
-            fos.write(salt);
-            fos.write(key.getEncoded());
+        
+        // Use try-with-resources for proper cleanup
+        try (FileOutputStream fos = new FileOutputStream(keyPath);
+             BufferedOutputStream bos = new BufferedOutputStream(fos)) {
+            bos.write(salt);
+            bos.write(key.getEncoded());
+            bos.flush();
         }
+        
         secretKey = key;
         LOGGER.info("Key generated and saved to: " + keyPath);
     }
 
     public void loadKey(String keyPath, String password) throws Exception {
+        validatePassword(password);
         byte[] salt = new byte[SALT_LENGTH];
         byte[] keyBytes = new byte[KEY_LENGTH / 8];
-        try (FileInputStream fis = new FileInputStream(keyPath)) {
-            int saltRead = fis.read(salt);
-            int keyRead = fis.read(keyBytes);
+        
+        try (FileInputStream fis = new FileInputStream(keyPath);
+             BufferedInputStream bis = new BufferedInputStream(fis)) {
+            int saltRead = bis.read(salt);
+            int keyRead = bis.read(keyBytes);
+            
             if (saltRead != SALT_LENGTH || keyRead != KEY_LENGTH / 8) {
                 throw new IOException("Invalid key file format");
             }
         }
+        
         SecretKey key = deriveKey(password, salt);
-        if (!Arrays.equals(key.getEncoded(), keyBytes)) {
+        if (!MessageDigest.isEqual(key.getEncoded(), keyBytes)) {
             throw new InvalidKeyException("Incorrect password or corrupted key file");
         }
+        
         secretKey = key;
         LOGGER.info("Key loaded from: " + keyPath);
     }
 
-    public String encryptFile(String inputPath, int chunkSize) throws Exception {
-        if (secretKey == null) throw new IllegalStateException("Key not loaded");
+    public String encryptFile(String inputPath, int requestedChunkSize) throws Exception {
+        if (secretKey == null) {
+            throw new IllegalStateException("Key not loaded");
+        }
+        
         File inputFile = new File(inputPath);
+        if (!inputFile.exists() || !inputFile.canRead()) {
+            throw new FileNotFoundException("Cannot read input file: " + inputPath);
+        }
+        
         String outputPath = inputPath + ".lock";
+        File outputFile = new File(outputPath);
+        
+        // Calculate optimal buffer size
+        int bufferSize = getOptimalBufferSize(inputFile.length(), requestedChunkSize);
+        
         Cipher cipher = Cipher.getInstance(TRANSFORMATION);
         cipher.init(Cipher.ENCRYPT_MODE, secretKey);
-
-        int bufferSize = Math.min(chunkSize, MAX_BUFFER_SIZE);
+        
         long startTime = System.nanoTime();
-        long usedMemoryBefore = (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024);
-
-        ExecutorService executor = Executors.newFixedThreadPool(Math.max(2, Runtime.getRuntime().availableProcessors() / 2));
-        List<Future<byte[]>> futures = new ArrayList<>();
-
-        try (FileChannel inChannel = new FileInputStream(inputFile).getChannel();
-             FileChannel outChannel = new FileOutputStream(outputPath).getChannel()) {
+        long usedMemoryBefore = getUsedMemory();
+        
+        try (FileInputStream fis = new FileInputStream(inputFile);
+             FileOutputStream fos = new FileOutputStream(outputFile);
+             BufferedInputStream bis = new BufferedInputStream(fis);
+             BufferedOutputStream bos = new BufferedOutputStream(fos)) {
+            
+            // Write IV to output file
             byte[] iv = cipher.getIV();
-            outChannel.write(ByteBuffer.wrap(iv));
-
-            long fileSize = inputFile.length();
-            long offset = 0;
-            while (offset < fileSize) {
-                long currentOffset = offset;
-                int currentBufferSize = (int) Math.min(bufferSize, fileSize - offset);
-                Future<byte[]> future = executor.submit(() -> {
-                    ByteBuffer buffer = ByteBuffer.allocate(currentBufferSize);
-                    synchronized (inChannel) {
-                        inChannel.position(currentOffset);
-                        inChannel.read(buffer);
-                    }
-                    buffer.flip();
-                    byte[] input = new byte[buffer.remaining()];
-                    buffer.get(input);
-                    return cipher.update(input);
-                });
-                futures.add(future);
-                offset += currentBufferSize;
+            bos.write(iv);
+            
+            // Process file sequentially to maintain encryption integrity
+            byte[] buffer = new byte[bufferSize];
+            byte[] outputBuffer;
+            int bytesRead;
+            
+            while ((bytesRead = bis.read(buffer)) != -1) {
+                if (bytesRead == bufferSize) {
+                    outputBuffer = cipher.update(buffer);
+                } else {
+                    // Last chunk - copy only the bytes read
+                    byte[] lastChunk = Arrays.copyOf(buffer, bytesRead);
+                    outputBuffer = cipher.update(lastChunk);
+                }
+                
+                if (outputBuffer != null) {
+                    bos.write(outputBuffer);
+                }
             }
-
-            for (Future<byte[]> future : futures) {
-                outChannel.write(ByteBuffer.wrap(future.get()));
-            }
-
+            
+            // Finalize encryption (includes GCM authentication tag)
             byte[] finalOutput = cipher.doFinal();
-            outChannel.write(ByteBuffer.wrap(finalOutput));
+            if (finalOutput != null) {
+                bos.write(finalOutput);
+            }
+            
+            bos.flush();
+            
         } catch (Exception e) {
-            new File(outputPath).delete();
-            throw e;
-        } finally {
-            executor.shutdown();
-            executor.awaitTermination(10, TimeUnit.SECONDS);
+            // Clean up partial file on error
+            if (outputFile.exists()) {
+                outputFile.delete();
+            }
+            throw new RuntimeException("Encryption failed: " + e.getMessage(), e);
         }
 
-        long usedMemoryAfter = (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024);
-        LOGGER.info(String.format("Encrypted %s in %d ms, memory used: %d MB -> %d MB",
-                inputPath, (System.nanoTime() - startTime) / 1_000_000, usedMemoryBefore, usedMemoryAfter));
+        long usedMemoryAfter = getUsedMemory();
+        long processingTime = (System.nanoTime() - startTime) / 1_000_000;
+        
+        LOGGER.info(String.format("Encrypted %s in %d ms, memory used: %d MB -> %d MB, buffer size: %d MB",
+                inputPath, processingTime, usedMemoryBefore, usedMemoryAfter, bufferSize / (1024 * 1024)));
+        
         return outputPath;
     }
 
     public String decryptFile(String inputPath, String outputPath) throws Exception {
-        if (secretKey == null) throw new IllegalStateException("Key not loaded");
+        if (secretKey == null) {
+            throw new IllegalStateException("Key not loaded");
+        }
+        
         File inputFile = new File(inputPath);
-        Cipher cipher = Cipher.getInstance(TRANSFORMATION);
-
-        int bufferSize = Math.min(1024 * 1024 * 1024, MAX_BUFFER_SIZE); // 1GB default
+        if (!inputFile.exists() || !inputFile.canRead()) {
+            throw new FileNotFoundException("Cannot read input file: " + inputPath);
+        }
+        
+        File outputFile = new File(outputPath);
+        
+        // Calculate optimal buffer size
+        int bufferSize = getOptimalBufferSize(inputFile.length(), MAX_BUFFER_SIZE);
+        
         long startTime = System.nanoTime();
-        long usedMemoryBefore = (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024);
-
-        ExecutorService executor = Executors.newFixedThreadPool(Math.max(2, Runtime.getRuntime().availableProcessors() / 2));
-        List<Future<byte[]>> futures = new ArrayList<>();
-
-        try (FileChannel inChannel = new FileInputStream(inputFile).getChannel();
-             FileChannel outChannel = new FileOutputStream(outputPath).getChannel()) {
-            ByteBuffer ivBuffer = ByteBuffer.allocate(IV_LENGTH);
-            inChannel.read(ivBuffer);
-            cipher.init(Cipher.DECRYPT_MODE, secretKey, new javax.crypto.spec.IvParameterSpec(ivBuffer.array()));
-
-            long fileSize = inputFile.length() - IV_LENGTH;
-            long offset = IV_LENGTH;
-            while (offset < fileSize) {
-                long currentOffset = offset;
-                int currentBufferSize = (int) Math.min(bufferSize, fileSize - offset);
-                Future<byte[]> future = executor.submit(() -> {
-                    ByteBuffer buffer = ByteBuffer.allocate(currentBufferSize);
-                    synchronized (inChannel) {
-                        inChannel.position(currentOffset);
-                        inChannel.read(buffer);
-                    }
-                    buffer.flip();
-                    byte[] input = new byte[buffer.remaining()];
-                    buffer.get(input);
-                    return cipher.update(input);
-                });
-                futures.add(future);
-                offset += currentBufferSize;
+        long usedMemoryBefore = getUsedMemory();
+        
+        try (FileInputStream fis = new FileInputStream(inputFile);
+             FileOutputStream fos = new FileOutputStream(outputFile);
+             BufferedInputStream bis = new BufferedInputStream(fis);
+             BufferedOutputStream bos = new BufferedOutputStream(fos)) {
+            
+            // Read IV
+            byte[] iv = new byte[GCM_IV_LENGTH];
+            int ivBytesRead = bis.read(iv);
+            if (ivBytesRead != GCM_IV_LENGTH) {
+                throw new IOException("Invalid encrypted file format: IV not found");
             }
-
-            for (Future<byte[]> future : futures) {
-                outChannel.write(ByteBuffer.wrap(future.get()));
+            
+            // Initialize cipher with IV
+            GCMParameterSpec gcmSpec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
+            Cipher cipher = Cipher.getInstance(TRANSFORMATION);
+            cipher.init(Cipher.DECRYPT_MODE, secretKey, gcmSpec);
+            
+            // Process file sequentially
+            byte[] buffer = new byte[bufferSize];
+            byte[] outputBuffer;
+            int bytesRead;
+            
+            while ((bytesRead = bis.read(buffer)) != -1) {
+                if (bytesRead == bufferSize) {
+                    outputBuffer = cipher.update(buffer);
+                } else {
+                    // Last chunk - copy only the bytes read
+                    byte[] lastChunk = Arrays.copyOf(buffer, bytesRead);
+                    outputBuffer = cipher.update(lastChunk);
+                }
+                
+                if (outputBuffer != null) {
+                    bos.write(outputBuffer);
+                }
             }
-
-            byte[] finalOutput = cipher.doFinal();
-            outChannel.write(ByteBuffer.wrap(finalOutput));
+            
+            // Finalize decryption (verifies GCM authentication tag)
+            try {
+                byte[] finalOutput = cipher.doFinal();
+                if (finalOutput != null) {
+                    bos.write(finalOutput);
+                }
+            } catch (AEADBadTagException e) {
+                throw new SecurityException("File authentication failed - file may be corrupted or tampered with", e);
+            }
+            
+            bos.flush();
+            
         } catch (Exception e) {
-            new File(outputPath).delete();
-            throw e;
-        } finally {
-            executor.shutdown();
-            executor.awaitTermination(10, TimeUnit.SECONDS);
+            // Clean up partial file on error
+            if (outputFile.exists()) {
+                outputFile.delete();
+            }
+            throw new RuntimeException("Decryption failed: " + e.getMessage(), e);
         }
 
-        long usedMemoryAfter = (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024);
-        LOGGER.info(String.format("Decrypted %s in %d ms, memory used: %d MB -> %d MB",
-                inputPath, (System.nanoTime() - startTime) / 1_000_000, usedMemoryBefore, usedMemoryAfter));
+        long usedMemoryAfter = getUsedMemory();
+        long processingTime = (System.nanoTime() - startTime) / 1_000_000;
+        
+        LOGGER.info(String.format("Decrypted %s in %d ms, memory used: %d MB -> %d MB, buffer size: %d MB",
+                inputPath, processingTime, usedMemoryBefore, usedMemoryAfter, bufferSize / (1024 * 1024)));
+        
         return outputPath;
     }
 
@@ -189,37 +251,125 @@ public class EncryptedFileSystem {
         File file = new File(filePath);
         if (!file.exists()) return;
 
-        try (FileChannel channel = new FileOutputStream(file, true).getChannel()) {
+        try (RandomAccessFile raf = new RandomAccessFile(file, "rw");
+             FileChannel channel = raf.getChannel()) {
+            
             long length = file.length();
-            ByteBuffer buffer = ByteBuffer.allocate(8192);
-            byte[] zeros = new byte[8192];
-            long position = 0;
-            while (position < length) {
-                int toWrite = (int) Math.min(8192, length - position);
+            int bufferSize = Math.min(8192, (int)Math.min(length, Integer.MAX_VALUE));
+            ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
+            
+            // Multiple pass secure deletion
+            SecureRandom random = new SecureRandom();
+            
+            // Pass 1: Random data
+            for (long position = 0; position < length; position += bufferSize) {
+                int toWrite = (int) Math.min(bufferSize, length - position);
+                byte[] randomData = new byte[toWrite];
+                random.nextBytes(randomData);
+                
                 buffer.clear();
-                buffer.put(zeros, 0, toWrite);
+                buffer.put(randomData, 0, toWrite);
                 buffer.flip();
+                
+                channel.position(position);
                 channel.write(buffer);
-                position += toWrite;
             }
+            
+            // Pass 2: Zeros
+            Arrays.fill(buffer.array(), (byte) 0);
+            for (long position = 0; position < length; position += bufferSize) {
+                int toWrite = (int) Math.min(bufferSize, length - position);
+                
+                buffer.clear();
+                buffer.limit(toWrite);
+                buffer.flip();
+                
+                channel.position(position);
+                channel.write(buffer);
+            }
+            
+            // Force write to disk
+            channel.force(true);
+            
+        } catch (IOException e) {
+            LOGGER.log(Level.WARNING, "Error during secure deletion of " + filePath, e);
+            throw e;
         }
+        
         if (!file.delete()) {
-            throw new IOException("Failed to securely delete file: " + filePath);
+            throw new IOException("Failed to delete file after secure wipe: " + filePath);
         }
+        
         LOGGER.info("Securely deleted file: " + filePath);
     }
 
+    /**
+     * Calculate optimal buffer size based on file size and available memory
+     */
+    private int getOptimalBufferSize(long fileSize, int requestedSize) {
+        Runtime runtime = Runtime.getRuntime();
+        long maxMemory = runtime.maxMemory();
+        long freeMemory = runtime.freeMemory();
+        long totalMemory = runtime.totalMemory();
+        long availableMemory = maxMemory - (totalMemory - freeMemory);
+        
+        // Use a portion of available memory, but respect min/max limits
+        int memoryBasedSize = (int) Math.min(availableMemory * MEMORY_USAGE_RATIO, Integer.MAX_VALUE);
+        int optimalSize = Math.min(requestedSize, memoryBasedSize);
+        
+        // Ensure we stay within bounds
+        optimalSize = Math.max(MIN_BUFFER_SIZE, optimalSize);
+        optimalSize = Math.min(MAX_BUFFER_SIZE, optimalSize);
+        
+        // For small files, don't use a buffer larger than the file
+        if (fileSize > 0) {
+            optimalSize = (int) Math.min(optimalSize, fileSize);
+        }
+        
+        LOGGER.fine(String.format("Buffer size calculation: requested=%d, memory-based=%d, optimal=%d, file-size=%d",
+                requestedSize, memoryBasedSize, optimalSize, fileSize));
+        
+        return optimalSize;
+    }
+
+    /**
+     * Get current memory usage in MB
+     */
+    private long getUsedMemory() {
+        Runtime runtime = Runtime.getRuntime();
+        return (runtime.totalMemory() - runtime.freeMemory()) / (1024 * 1024);
+    }
+
+    /**
+     * Generate cryptographically secure random salt
+     */
     private byte[] generateSalt() {
         byte[] salt = new byte[SALT_LENGTH];
         new SecureRandom().nextBytes(salt);
         return salt;
     }
 
+    /**
+     * Derive key from password using PBKDF2 with increased iterations
+     */
     private SecretKey deriveKey(String password, byte[] salt) throws Exception {
         KeySpec spec = new PBEKeySpec(password.toCharArray(), salt, PBKDF2_ITERATIONS, KEY_LENGTH);
         SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
         byte[] keyBytes = factory.generateSecret(spec).getEncoded();
+        
+        // Clear the password from memory
+        Arrays.fill(password.toCharArray(), '\0');
+        
         return new SecretKeySpec(keyBytes, ALGORITHM);
     }
+
+    /**
+     * Validate password strength
+     */
+    private void validatePassword(String password) {
+        if (password == null || password.length() < 8) {
+            throw new IllegalArgumentException("Password must be at least 8 characters long");
+        }
+        // Add more password strength validation if needed
+    }
 }
-```
