@@ -1,0 +1,698 @@
+/* =====================================================
+   🎨 PASSCODE 2024 - Ultra Modern UI Design
+   최신 트렌드 반영한 모던 UI 스타일시트
+   ===================================================== */
+
+/* 📁 Import Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* 🎯 CSS Variables for Modern Design System */
+:root {
+  /* 🎨 Color Palette - Modern Glassmorphism */
+  --color-primary: #6366f1;
+  --color-primary-hover: #4f46e5;
+  --color-primary-light: rgba(99, 102, 241, 0.1);
+  
+  --color-secondary: #8b5cf6;
+  --color-secondary-hover: #7c3aed;
+  --color-secondary-light: rgba(139, 92, 246, 0.1);
+  
+  --color-success: #10b981;
+  --color-success-hover: #059669;
+  --color-success-light: rgba(16, 185, 129, 0.1);
+  
+  --color-warning: #f59e0b;
+  --color-warning-hover: #d97706;
+  --color-warning-light: rgba(245, 158, 11, 0.1);
+  
+  --color-error: #ef4444;
+  --color-error-hover: #dc2626;
+  --color-error-light: rgba(239, 68, 68, 0.1);
+  
+  /* 🌈 Neutral Colors */
+  --color-white: #ffffff;
+  --color-gray-50: #f8fafc;
+  --color-gray-100: #f1f5f9;
+  --color-gray-200: #e2e8f0;
+  --color-gray-300: #cbd5e1;
+  --color-gray-400: #94a3b8;
+  --color-gray-500: #64748b;
+  --color-gray-600: #475569;
+  --color-gray-700: #334155;
+  --color-gray-800: #1e293b;
+  --color-gray-900: #0f172a;
+  
+  /* 🌙 Dark Theme Colors */
+  --color-dark-bg: #0f172a;
+  --color-dark-surface: rgba(30, 41, 59, 0.8);
+  --color-dark-surface-hover: rgba(51, 65, 85, 0.8);
+  --color-dark-border: rgba(100, 116, 139, 0.2);
+  --color-dark-text: #e2e8f0;
+  --color-dark-text-muted: #94a3b8;
+  
+  /* 📐 Spacing Scale */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  
+  /* 📏 Border Radius */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --radius-full: 9999px;
+  
+  /* 🎭 Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+  
+  /* ✨ Glassmorphism Effects */
+  --glass-bg: rgba(255, 255, 255, 0.1);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  --backdrop-blur: blur(20px);
+  
+  /* 🔤 Typography */
+  --font-family-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-family-mono: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
+  
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  --font-size-4xl: 2.25rem;
+  
+  /* ⚡ Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* 🎬 Animations */
+  --animation-duration: 0.6s;
+  --animation-timing: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* 🌙 Dark Mode Variables */
+.dark-mode {
+  --color-primary: #818cf8;
+  --color-primary-hover: #6366f1;
+  
+  --bg-primary: var(--color-dark-bg);
+  --bg-secondary: var(--color-dark-surface);
+  --bg-hover: var(--color-dark-surface-hover);
+  
+  --text-primary: var(--color-dark-text);
+  --text-secondary: var(--color-dark-text-muted);
+  
+  --border-color: var(--color-dark-border);
+}
+
+/* =====================================================
+   🎨 GLOBAL STYLES
+   ===================================================== */
+
+* {
+  -fx-font-family: var(--font-family-sans);
+  -fx-font-smoothing-type: lcd;
+}
+
+.root {
+  -fx-background-color: linear-gradient(135deg, 
+    #667eea 0%, 
+    #764ba2 50%, 
+    #f093fb 100%);
+  -fx-font-family: var(--font-family-sans);
+}
+
+/* =====================================================
+   🏗️ MAIN CONTAINER - Glassmorphism
+   ===================================================== */
+
+.modern-container {
+  -fx-background-color: rgba(255, 255, 255, 0.95);
+  -fx-background-radius: var(--radius-2xl);
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 40, 0, 0, 10);
+  -fx-padding: var(--space-6);
+}
+
+.dark-mode .modern-container {
+  -fx-background-color: rgba(15, 23, 42, 0.95);
+}
+
+/* =====================================================
+   📋 MENU BAR - Minimal & Modern
+   ===================================================== */
+
+.modern-menu {
+  -fx-background-color: transparent;
+  -fx-padding: var(--space-3) 0;
+  -fx-border-width: 0 0 1 0;
+  -fx-border-color: var(--color-gray-200);
+}
+
+.dark-mode .modern-menu {
+  -fx-border-color: var(--color-dark-border);
+}
+
+.menu {
+  -fx-padding: var(--space-2) var(--space-4);
+  -fx-background-radius: var(--radius-md);
+  -fx-font-size: var(--font-size-sm);
+  -fx-font-weight: 500;
+}
+
+.menu:hover {
+  -fx-background-color: var(--color-primary-light);
+  -fx-text-fill: var(--color-primary);
+}
+
+.menu-item {
+  -fx-padding: var(--space-3) var(--space-4);
+  -fx-background-radius: var(--radius-sm);
+  -fx-font-size: var(--font-size-sm);
+}
+
+.menu-item:hover {
+  -fx-background-color: var(--color-primary-light);
+  -fx-text-fill: var(--color-primary);
+}
+
+/* =====================================================
+   🎛️ TOOLBAR - Glassmorphism Card
+   ===================================================== */
+
+.modern-toolbar {
+  -fx-background-color: rgba(255, 255, 255, 0.6);
+  -fx-background-radius: var(--radius-xl);
+  -fx-padding: var(--space-4);
+  -fx-spacing: var(--space-3);
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.1), 20, 0, 0, 5);
+  -fx-border-color: rgba(255, 255, 255, 0.8);
+  -fx-border-width: 1;
+  -fx-border-radius: var(--radius-xl);
+}
+
+.dark-mode .modern-toolbar {
+  -fx-background-color: var(--color-dark-surface);
+  -fx-border-color: var(--color-dark-border);
+}
+
+/* =====================================================
+   🔘 BUTTONS - Modern Gradient & Effects
+   ===================================================== */
+
+.modern-button {
+  -fx-background-color: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -fx-text-fill: white;
+  -fx-font-weight: 600;
+  -fx-font-size: var(--font-size-sm);
+  -fx-padding: var(--space-3) var(--space-6);
+  -fx-background-radius: var(--radius-lg);
+  -fx-cursor: hand;
+  -fx-effect: dropshadow(gaussian, rgba(102, 126, 234, 0.4), 15, 0, 0, 5);
+}
+
+.modern-button:hover {
+  -fx-background-color: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  -fx-effect: dropshadow(gaussian, rgba(102, 126, 234, 0.6), 20, 0, 0, 8);
+  -fx-scale-y: 1.05;
+  -fx-scale-x: 1.05;
+}
+
+.modern-button:pressed {
+  -fx-scale-y: 0.95;
+  -fx-scale-x: 0.95;
+}
+
+/* Primary Button */
+.primary-button {
+  -fx-background-color: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  -fx-text-fill: white;
+  -fx-font-weight: 600;
+  -fx-padding: var(--space-3) var(--space-6);
+  -fx-background-radius: var(--radius-lg);
+  -fx-effect: dropshadow(gaussian, rgba(99, 102, 241, 0.4), 12, 0, 0, 4);
+}
+
+.primary-button:hover {
+  -fx-background-color: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  -fx-effect: dropshadow(gaussian, rgba(99, 102, 241, 0.6), 16, 0, 0, 6);
+}
+
+/* Success Button */
+.success-button {
+  -fx-background-color: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  -fx-text-fill: white;
+  -fx-font-weight: 600;
+  -fx-padding: var(--space-3) var(--space-6);
+  -fx-background-radius: var(--radius-lg);
+  -fx-effect: dropshadow(gaussian, rgba(16, 185, 129, 0.4), 12, 0, 0, 4);
+}
+
+.success-button:hover {
+  -fx-background-color: linear-gradient(135deg, #059669 0%, #047857 100%);
+  -fx-effect: dropshadow(gaussian, rgba(16, 185, 129, 0.6), 16, 0, 0, 6);
+}
+
+/* Icon Button */
+.icon-button {
+  -fx-background-color: transparent;
+  -fx-text-fill: var(--color-gray-600);
+  -fx-padding: var(--space-2);
+  -fx-background-radius: var(--radius-md);
+}
+
+.icon-button:hover {
+  -fx-background-color: var(--color-primary-light);
+  -fx-text-fill: var(--color-primary);
+}
+
+/* =====================================================
+   📊 TABLE - Modern Card Design
+   ===================================================== */
+
+.modern-table {
+  -fx-background-color: white;
+  -fx-background-radius: var(--radius-xl);
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.08), 20, 0, 0, 5);
+  -fx-border-color: var(--color-gray-200);
+  -fx-border-width: 1;
+  -fx-border-radius: var(--radius-xl);
+}
+
+.dark-mode .modern-table {
+  -fx-background-color: var(--color-dark-surface);
+  -fx-border-color: var(--color-dark-border);
+}
+
+.modern-table .column-header {
+  -fx-background-color: var(--color-gray-50);
+  -fx-padding: var(--space-4);
+  -fx-font-weight: 600;
+  -fx-font-size: var(--font-size-sm);
+  -fx-text-fill: var(--color-gray-700);
+  -fx-border-width: 0 0 2 0;
+  -fx-border-color: var(--color-gray-200);
+}
+
+.dark-mode .modern-table .column-header {
+  -fx-background-color: rgba(30, 41, 59, 0.5);
+  -fx-text-fill: var(--color-dark-text);
+  -fx-border-color: var(--color-dark-border);
+}
+
+.modern-table .table-row-cell {
+  -fx-background-color: transparent;
+  -fx-padding: var(--space-3);
+  -fx-border-width: 0 0 1 0;
+  -fx-border-color: var(--color-gray-100);
+}
+
+.modern-table .table-row-cell:hover {
+  -fx-background-color: var(--color-primary-light);
+}
+
+.modern-table .table-row-cell:selected {
+  -fx-background-color: var(--color-primary-light);
+  -fx-border-color: var(--color-primary);
+}
+
+/* =====================================================
+   📈 PROGRESS BAR - Gradient & Animated
+   ===================================================== */
+
+.modern-progress {
+  -fx-pref-height: 8px;
+  -fx-background-radius: var(--radius-full);
+}
+
+.modern-progress .bar {
+  -fx-background-color: linear-gradient(90deg, 
+    #667eea 0%, 
+    #764ba2 50%, 
+    #f093fb 100%);
+  -fx-background-radius: var(--radius-full);
+  -fx-background-insets: 0;
+  -fx-effect: dropshadow(gaussian, rgba(102, 126, 234, 0.5), 8, 0, 0, 2);
+}
+
+.modern-progress .track {
+  -fx-background-color: var(--color-gray-200);
+  -fx-background-radius: var(--radius-full);
+}
+
+.dark-mode .modern-progress .track {
+  -fx-background-color: var(--color-dark-surface);
+}
+
+/* Progress Success State */
+.progress-success .bar {
+  -fx-background-color: linear-gradient(90deg, #10b981 0%, #059669 100%);
+}
+
+/* Progress Warning State */
+.progress-warning .bar {
+  -fx-background-color: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
+}
+
+/* Progress Error State */
+.progress-error .bar {
+  -fx-background-color: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+}
+
+/* =====================================================
+   🎚️ INPUT FIELDS - Modern Floating Style
+   ===================================================== */
+
+.modern-input {
+  -fx-background-color: white;
+  -fx-border-color: var(--color-gray-300);
+  -fx-border-width: 2;
+  -fx-border-radius: var(--radius-lg);
+  -fx-background-radius: var(--radius-lg);
+  -fx-padding: var(--space-3) var(--space-4);
+  -fx-font-size: var(--font-size-base);
+  -fx-text-fill: var(--color-gray-900);
+}
+
+.modern-input:focused {
+  -fx-border-color: var(--color-primary);
+  -fx-effect: dropshadow(gaussian, rgba(99, 102, 241, 0.3), 12, 0, 0, 0);
+}
+
+.dark-mode .modern-input {
+  -fx-background-color: var(--color-dark-surface);
+  -fx-border-color: var(--color-dark-border);
+  -fx-text-fill: var(--color-dark-text);
+}
+
+/* ComboBox */
+.modern-combo {
+  -fx-background-color: white;
+  -fx-border-color: var(--color-gray-300);
+  -fx-border-width: 2;
+  -fx-border-radius: var(--radius-lg);
+  -fx-background-radius: var(--radius-lg);
+  -fx-padding: var(--space-2) var(--space-4);
+  -fx-font-size: var(--font-size-sm);
+}
+
+.modern-combo:hover {
+  -fx-border-color: var(--color-primary);
+}
+
+.modern-combo .arrow-button {
+  -fx-background-color: transparent;
+  -fx-padding: var(--space-2);
+}
+
+/* =====================================================
+   🏷️ LABELS & TEXT - Modern Typography
+   ===================================================== */
+
+.modern-label {
+  -fx-font-size: var(--font-size-sm);
+  -fx-text-fill: var(--color-gray-700);
+  -fx-font-weight: 500;
+}
+
+.dark-mode .modern-label {
+  -fx-text-fill: var(--color-dark-text);
+}
+
+.title-label {
+  -fx-font-size: var(--font-size-2xl);
+  -fx-font-weight: 700;
+  -fx-text-fill: var(--color-gray-900);
+}
+
+.dark-mode .title-label {
+  -fx-text-fill: var(--color-dark-text);
+}
+
+.subtitle-label {
+  -fx-font-size: var(--font-size-base);
+  -fx-font-weight: 500;
+  -fx-text-fill: var(--color-gray-600);
+}
+
+.dark-mode .subtitle-label {
+  -fx-text-fill: var(--color-dark-text-muted);
+}
+
+/* Status Labels */
+.status-success {
+  -fx-text-fill: var(--color-success);
+  -fx-font-weight: 600;
+}
+
+.status-warning {
+  -fx-text-fill: var(--color-warning);
+  -fx-font-weight: 600;
+}
+
+.status-error {
+  -fx-text-fill: var(--color-error);
+  -fx-font-weight: 600;
+}
+
+/* =====================================================
+   💳 CARDS - Modern Glassmorphism
+   ===================================================== */
+
+.modern-card {
+  -fx-background-color: rgba(255, 255, 255, 0.8);
+  -fx-background-radius: var(--radius-xl);
+  -fx-padding: var(--space-6);
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.1), 20, 0, 0, 5);
+  -fx-border-color: rgba(255, 255, 255, 0.3);
+  -fx-border-width: 1;
+  -fx-border-radius: var(--radius-xl);
+}
+
+.dark-mode .modern-card {
+  -fx-background-color: var(--color-dark-surface);
+  -fx-border-color: var(--color-dark-border);
+}
+
+.modern-card:hover {
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.15), 30, 0, 0, 8);
+  -fx-translate-y: -2px;
+}
+
+/* Stats Card */
+.stats-card {
+  -fx-background-color: linear-gradient(135deg, 
+    rgba(99, 102, 241, 0.1) 0%, 
+    rgba(139, 92, 246, 0.1) 100%);
+  -fx-background-radius: var(--radius-lg);
+  -fx-padding: var(--space-4);
+  -fx-border-color: var(--color-primary);
+  -fx-border-width: 1;
+  -fx-border-radius: var(--radius-lg);
+}
+
+/* =====================================================
+   🎯 BADGES & CHIPS - Modern Pills
+   ===================================================== */
+
+.modern-badge {
+  -fx-background-color: var(--color-primary);
+  -fx-text-fill: white;
+  -fx-font-size: var(--font-size-xs);
+  -fx-font-weight: 600;
+  -fx-padding: var(--space-1) var(--space-3);
+  -fx-background-radius: var(--radius-full);
+}
+
+.badge-success {
+  -fx-background-color: var(--color-success);
+}
+
+.badge-warning {
+  -fx-background-color: var(--color-warning);
+}
+
+.badge-error {
+  -fx-background-color: var(--color-error);
+}
+
+/* =====================================================
+   💬 TOOLTIPS - Modern Floating
+   ===================================================== */
+
+.modern-tooltip {
+  -fx-background-color: var(--color-gray-900);
+  -fx-text-fill: white;
+  -fx-font-size: var(--font-size-sm);
+  -fx-padding: var(--space-2) var(--space-3);
+  -fx-background-radius: var(--radius-md);
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.3), 10, 0, 0, 3);
+}
+
+/* =====================================================
+   ⚡ ANIMATIONS & TRANSITIONS
+   ===================================================== */
+
+@keyframes fadeIn {
+  from {
+    -fx-opacity: 0;
+    -fx-translate-y: 20px;
+  }
+  to {
+    -fx-opacity: 1;
+    -fx-translate-y: 0;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    -fx-translate-x: -100px;
+    -fx-opacity: 0;
+  }
+  to {
+    -fx-translate-x: 0;
+    -fx-opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    -fx-scale-x: 1;
+    -fx-scale-y: 1;
+  }
+  50% {
+    -fx-scale-x: 1.05;
+    -fx-scale-y: 1.05;
+  }
+}
+
+/* =====================================================
+   🎨 STATUS BAR - Minimal Footer
+   ===================================================== */
+
+.modern-statusbar {
+  -fx-background-color: rgba(255, 255, 255, 0.6);
+  -fx-padding: var(--space-3) var(--space-4);
+  -fx-border-width: 1 0 0 0;
+  -fx-border-color: var(--color-gray-200);
+  -fx-background-radius: 0 0 var(--radius-2xl) var(--radius-2xl);
+}
+
+.dark-mode .modern-statusbar {
+  -fx-background-color: var(--color-dark-surface);
+  -fx-border-color: var(--color-dark-border);
+}
+
+/* =====================================================
+   🔔 NOTIFICATIONS - Toast Style
+   ===================================================== */
+
+.modern-notification {
+  -fx-background-color: white;
+  -fx-background-radius: var(--radius-lg);
+  -fx-padding: var(--space-4);
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 25, 0, 0, 8);
+  -fx-border-color: var(--color-gray-200);
+  -fx-border-width: 1;
+  -fx-border-radius: var(--radius-lg);
+}
+
+.notification-success {
+  -fx-border-color: var(--color-success);
+  -fx-border-width: 2;
+}
+
+.notification-error {
+  -fx-border-color: var(--color-error);
+  -fx-border-width: 2;
+}
+
+/* =====================================================
+   📱 RESPONSIVE UTILITIES
+   ===================================================== */
+
+.hidden {
+  -fx-opacity: 0;
+  -fx-pref-width: 0;
+  -fx-pref-height: 0;
+}
+
+.fade-in {
+  -fx-opacity: 0;
+  animation: fadeIn var(--animation-duration) var(--animation-timing) forwards;
+}
+
+.slide-in {
+  animation: slideIn var(--animation-duration) var(--animation-timing) forwards;
+}
+
+/* =====================================================
+   🎭 SCROLLBAR - Minimal & Modern
+   ===================================================== */
+
+.scroll-bar {
+  -fx-background-color: transparent;
+  -fx-padding: 2;
+}
+
+.scroll-bar .thumb {
+  -fx-background-color: var(--color-gray-400);
+  -fx-background-radius: var(--radius-full);
+}
+
+.scroll-bar .thumb:hover {
+  -fx-background-color: var(--color-gray-500);
+}
+
+.scroll-bar .track {
+  -fx-background-color: transparent;
+}
+
+.scroll-bar .increment-button,
+.scroll-bar .decrement-button {
+  -fx-opacity: 0;
+  -fx-pref-height: 0;
+  -fx-pref-width: 0;
+}
+
+/* =====================================================
+   ✨ SPECIAL EFFECTS
+   ===================================================== */
+
+.glow-effect {
+  -fx-effect: dropshadow(gaussian, var(--color-primary), 20, 0.7, 0, 0);
+}
+
+.shadow-sm {
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.1), 5, 0, 0, 2);
+}
+
+.shadow-md {
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.15), 10, 0, 0, 4);
+}
+
+.shadow-lg {
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 20, 0, 0, 8);
+}
+
+.shadow-xl {
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.25), 30, 0, 0, 12);
+}
